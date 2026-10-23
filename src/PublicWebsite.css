@@ -1,0 +1,281 @@
+/* SR-PG Public Website — styles matching PublicWebsite.jsx */
+
+:root {
+  --srpg-blue: #174b38;
+  --srpg-blue-dark: #0d3529;
+  --srpg-navy: #12392d;
+  --srpg-text: #2d352d;
+  --srpg-muted: #77776c;
+  --srpg-bg: #f7f2e7;
+  --srpg-border: #e9dfcb;
+  --srpg-shadow: 0 18px 48px rgba(38, 48, 35, .12);
+}
+
+.srpg, .srpg * { box-sizing: border-box; }
+.srpg {
+  min-height: 100vh;
+  width: 100%;
+  color: var(--srpg-text);
+  background: #fff;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+.srpg button, .srpg input, .srpg select, .srpg textarea { font: inherit; }
+.srpg button { cursor: pointer; }
+.srpg img { display: block; max-width: 100%; }
+.srpg button:focus-visible, .srpg input:focus-visible, .srpg select:focus-visible, .srpg textarea:focus-visible {
+  outline: 3px solid rgba(23,75,56,.28); outline-offset: 2px;
+}
+.srpg-topline {
+  min-height: 34px; display:flex; align-items:center; justify-content:center;
+  padding: 7px 18px; color:#f9f2e3; background:#0d3529;
+  font-size:12px; letter-spacing:.35px; text-align:center;
+}
+.srpg-header {
+  position:sticky; top:0; z-index:50; min-height:82px; padding:0 max(24px, calc((100% - 1180px)/2));
+  display:flex; align-items:center; justify-content:space-between; gap:28px;
+  background:rgba(255,255,255,.96); border-bottom:1px solid var(--srpg-border);
+  backdrop-filter:blur(14px);
+}
+.srpg-brand {
+  display:inline-flex; align-items:center; gap:12px; flex-shrink:0; padding:0;
+  border:0; color:var(--srpg-navy); background:transparent; text-align:left;
+}
+.srpg-brand-icon {
+  width:46px; height:46px; display:grid; place-items:center; border-radius:14px;
+  color:white; background:linear-gradient(135deg,#d6bd78,#a17a25);
+  box-shadow:0 8px 18px rgba(161,122,37,.2);
+}
+.srpg-brand strong, .srpg-brand small { display:block; }
+.srpg-brand strong { font-size:23px; line-height:1.1; letter-spacing:-.8px; font-weight:850; }
+.srpg-brand strong span { color:var(--srpg-blue); }
+.srpg-brand small { margin-top:5px; color:var(--srpg-muted); font-size:9px; letter-spacing:1.25px; }
+.srpg-nav { display:flex; align-items:center; gap:27px; }
+.srpg-nav button {
+  padding:10px 0; border:0; background:transparent; color:#536176;
+  font-size:13px; font-weight:650; transition:color .2s;
+}
+.srpg-nav button:hover, .srpg-nav button.active { color:var(--srpg-blue); }
+.srpg-nav .srpg-nav-cta {
+  padding:12px 18px; border-radius:10px; color:#fff; background:var(--srpg-blue);
+  box-shadow:0 7px 18px rgba(161,122,37,.18);
+}
+.srpg-nav .srpg-nav-cta:hover { color:white; background:var(--srpg-blue-dark); }
+.srpg-menu-button {
+  display:none; place-items:center; width:43px; height:43px; border:1px solid var(--srpg-border);
+  border-radius:12px; color:var(--srpg-navy); background:white;
+}
+.srpg-hero {
+  display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:center; gap:58px;
+  padding:76px max(24px, calc((100% - 1180px)/2)) 84px;
+  background:radial-gradient(ellipse at 82% 20%,#f4e8c9 0%,transparent 36%),linear-gradient(115deg,#f8f3e8 0%,#fffdf8 55%,#f2ead8 100%);
+  overflow:hidden;
+}
+.srpg-hero-copy { max-width:570px; }
+.srpg-eyebrow {
+  display:inline-flex; align-items:center; gap:8px; margin-bottom:18px; padding:8px 13px;
+  border:1px solid #e7d5a8; border-radius:100px; color:#8a6820;
+  background:#f8efd9; font-size:11px; font-weight:800; letter-spacing:.7px;
+}
+.srpg-hero h1 {
+  margin:0; color:var(--srpg-navy); font-size:clamp(42px,5.1vw,66px);
+  line-height:1.07; letter-spacing:-2.8px; font-weight:850;
+}
+.srpg-hero h1 em { color:var(--srpg-blue); font-style:normal; }
+.srpg-hero-copy > p { max-width:500px; margin:22px 0 27px; color:var(--srpg-muted); font-size:16px; line-height:1.85; }
+.srpg-hero-actions { display:flex; align-items:center; flex-wrap:wrap; gap:18px; }
+.srpg-primary {
+  display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:48px;
+  padding:13px 20px; border:1px solid transparent; border-radius:11px;
+  color:#fff; background:var(--srpg-blue); font-size:14px; font-weight:750;
+  box-shadow:0 8px 20px rgba(23,75,56,.18); transition:transform .2s,background .2s;
+}
+.srpg-primary:hover { transform:translateY(-2px); background:var(--srpg-blue-dark); }
+.srpg-text-button, .srpg-link, .srpg-back {
+  display:inline-flex; align-items:center; gap:8px; padding:10px 0;
+  border:0; color:var(--srpg-blue); background:transparent; font-size:14px; font-weight:750;
+}
+.srpg-trust-line { display:flex; flex-wrap:wrap; gap:22px; margin-top:30px; color:#52647b; font-size:12px; }
+.srpg-trust-line span { display:flex; align-items:center; gap:7px; }
+.srpg-trust-line svg { color:#169b68; }
+.srpg-hero-image { position:relative; min-width:0; }
+.srpg-hero-image > img {
+  width:100%; height:440px; object-fit:cover; border-radius:25px;
+  box-shadow:0 25px 60px rgba(38,48,35,.18);
+}
+.srpg-image-note {
+  position:absolute; right:-17px; bottom:22px; display:flex; align-items:center; gap:12px;
+  max-width:270px; padding:16px 18px; border:1px solid #fff; border-radius:16px;
+  background:#fff; box-shadow:var(--srpg-shadow);
+}
+.srpg-note-icon { display:grid; place-items:center; flex:0 0 44px; height:44px; border-radius:13px; color:var(--srpg-blue); background:#f7efd9; }
+.srpg-image-note strong, .srpg-image-note small { display:block; }
+.srpg-image-note strong { color:var(--srpg-navy); font-size:13px; }
+.srpg-image-note small { margin-top:4px; color:var(--srpg-muted); font-size:11px; }
+.srpg-section { padding:78px max(24px, calc((100% - 1180px)/2)); }
+.srpg-featured { background:linear-gradient(180deg,#fffdf8 0%,#f8f2e6 100%); }
+.srpg-section-heading { display:flex; align-items:end; justify-content:space-between; gap:24px; margin-bottom:30px; }
+.srpg-section-heading .srpg-eyebrow { margin-bottom:12px; }
+.srpg-section-heading h2 { margin:0; color:var(--srpg-navy); font-size:clamp(28px,3.5vw,39px); line-height:1.2; letter-spacing:-1.2px; }
+.srpg-room-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:23px; }
+.srpg-room-card { overflow:hidden; border:1px solid var(--srpg-border); border-radius:18px; background:#fff; box-shadow:0 5px 20px rgba(38,48,35,.05); transition:transform .25s,box-shadow .25s; }
+.srpg-room-card:hover { transform:translateY(-5px); box-shadow:var(--srpg-shadow); }
+.srpg-room-image { position:relative; display:block; width:100%; height:235px; overflow:hidden; padding:0; border:0; background:#eee5d5; text-align:left; }
+.srpg-room-image img { width:100%; height:100%; object-fit:cover; transition:transform .35s; }
+.srpg-room-card:hover .srpg-room-image img { transform:scale(1.04); }
+.srpg-availability { position:absolute; top:14px; left:14px; display:inline-block; padding:7px 10px; border-radius:100px; font-size:11px; font-weight:800; }
+.srpg-availability.available { color:#146c43; background:#dcfce7; }
+.srpg-availability.unavailable { color:#b42318; background:#fee4e2; }
+.srpg-room-card-body { padding:21px; }
+.srpg-room-type { color:var(--srpg-muted); font-size:12px; }
+.srpg-room-card-body h3 { margin:7px 0 18px; color:var(--srpg-navy); font-size:20px; }
+.srpg-room-card-bottom { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:16px; border-top:1px solid #edf1f7; }
+.srpg-room-card-bottom strong { color:var(--srpg-blue); font-size:23px; }
+.srpg-room-card-bottom small { margin-left:5px; color:var(--srpg-muted); font-size:12px; }
+.srpg-room-card-bottom button { display:grid; place-items:center; width:42px; height:42px; border:0; border-radius:12px; color:var(--srpg-blue); background:#f7efd9; }
+.srpg-benefits { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; padding:36px max(24px, calc((100% - 1180px)/2)); background:var(--srpg-bg); }
+.srpg-benefits > div { padding:20px; }
+.srpg-benefit-icon { display:grid; place-items:center; width:46px; height:46px; margin-bottom:14px; border-radius:13px; color:var(--srpg-blue); background:#f3e8cb; }
+.srpg-benefits strong { display:block; color:var(--srpg-navy); font-size:16px; }
+.srpg-benefits p { margin:8px 0 0; color:var(--srpg-muted); font-size:13px; line-height:1.7; }
+.srpg-page-section { min-height:60vh; background:#fbf7ef; }
+.srpg-page-heading { max-width:760px; margin:0 auto 36px; text-align:center; }
+.srpg-page-heading .srpg-eyebrow { margin-bottom:14px; }
+.srpg-page-heading h1 { margin:0; color:var(--srpg-navy); font-size:clamp(32px,4vw,46px); line-height:1.15; letter-spacing:-1.5px; }
+.srpg-page-heading p { margin:14px auto 0; color:var(--srpg-muted); line-height:1.8; }
+.srpg-filter-row { display:flex; align-items:center; justify-content:flex-end; gap:12px; margin-bottom:24px; color:var(--srpg-muted); font-size:13px; }
+.srpg-filter-row select { min-width:180px; padding:11px 13px; border:1px solid var(--srpg-border); border-radius:10px; color:var(--srpg-text); background:#fff; }
+.srpg-back { margin-bottom:24px; }
+.srpg-detail-layout { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr); gap:38px; align-items:start; }
+.srpg-detail-image { width:100%; height:460px; object-fit:cover; border-radius:22px; }
+.srpg-detail-thumb-row { display:flex; gap:12px; margin-top:14px; }
+.srpg-detail-thumb-row button { width:100px; height:75px; padding:0; overflow:hidden; border:2px solid transparent; border-radius:10px; background:#f2eadb; }
+.srpg-detail-thumb-row button:hover { border-color:var(--srpg-blue); }
+.srpg-detail-thumb-row img { width:100%; height:100%; object-fit:cover; }
+.srpg-detail-copy { padding:28px; border:1px solid var(--srpg-border); border-radius:20px; box-shadow:0 8px 28px rgba(38,48,35,.06); }
+.srpg-detail-copy h1 { margin:0; color:var(--srpg-navy); font-size:32px; line-height:1.2; }
+.srpg-detail-copy > p { color:var(--srpg-muted); line-height:1.7; }
+.srpg-detail-price { margin:22px 0 14px; color:var(--srpg-blue); font-size:30px; font-weight:850; }
+.srpg-detail-price small { color:var(--srpg-muted); font-size:13px; font-weight:500; }
+.srpg-detail-copy .srpg-availability { position:static; margin-bottom:15px; }
+.srpg-detail-copy h3 { margin:24px 0 12px; color:var(--srpg-navy); font-size:16px; }
+.srpg-feature-list { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:0 0 25px; padding:0; list-style:none; }
+.srpg-feature-list li { display:flex; align-items:center; gap:8px; color:#536176; font-size:13px; }
+.srpg-feature-list svg { flex-shrink:0; color:#15966a; }
+.srpg-full { width:100%; }
+.srpg-small-note { display:block; margin-top:14px; color:#7b8798; font-size:11px; line-height:1.6; }
+.srpg-facility-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+.srpg-facility-card { padding:26px; border:1px solid var(--srpg-border); border-radius:17px; background:#fff; transition:transform .2s,border-color .2s; }
+.srpg-facility-card:hover { transform:translateY(-3px); border-color:#d8c28c; }
+.srpg-facility-icon { display:grid; place-items:center; width:49px; height:49px; margin-bottom:17px; border-radius:14px; color:var(--srpg-blue); background:#f7efd9; }
+.srpg-facility-card h3 { margin:0; color:var(--srpg-navy); font-size:17px; }
+.srpg-facility-card p { margin:10px 0 0; color:var(--srpg-muted); font-size:13px; line-height:1.8; }
+.srpg-callout { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-top:42px; padding:34px; border-radius:22px; color:#fff; background:linear-gradient(115deg,#103d2f,#1d6047); }
+.srpg-callout h2 { margin:0; font-size:27px; }
+.srpg-callout p { margin:8px 0 0; color:#f3e8d0; }
+.srpg-callout .srpg-primary { flex-shrink:0; color:var(--srpg-navy); background:#fff; box-shadow:none; }
+.srpg-gallery-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:17px; }
+.srpg-gallery-item { position:relative; height:260px; overflow:hidden; padding:0; border:0; border-radius:16px; background:#eee5d5; text-align:left; }
+.srpg-gallery-item img { width:100%; height:100%; object-fit:cover; transition:transform .35s; }
+.srpg-gallery-item:hover img { transform:scale(1.05); }
+.srpg-gallery-item > span { position:absolute; right:0; bottom:0; left:0; padding:38px 17px 16px; color:white; background:linear-gradient(transparent,rgba(8,25,48,.85)); font-weight:750; }
+.srpg-gallery-item small { display:block; margin-top:4px; font-size:11px; font-weight:500; }
+.srpg-gallery-message { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; min-height:200px; padding:26px; border:1px dashed #dfd2b6; border-radius:16px; color:var(--srpg-blue); background:var(--srpg-bg); }
+.srpg-gallery-message h3 { margin:16px 0 5px; color:var(--srpg-navy); }
+.srpg-gallery-message p { margin:0; color:var(--srpg-muted); font-size:13px; line-height:1.7; }
+.srpg-contact-layout { display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); align-items:start; gap:30px; }
+.srpg-contact-info { padding:30px; border-radius:20px; color:#fff; background:linear-gradient(145deg,#103d2f,#1d6047); }
+.srpg-contact-info .srpg-eyebrow { color:#f3dfad; border-color:rgba(255,255,255,.2); background:rgba(255,255,255,.08); }
+.srpg-contact-info h2 { margin:0; font-size:30px; }
+.srpg-contact-info > p { color:#e9e1d1; line-height:1.8; }
+.srpg-contact-item { display:flex; align-items:flex-start; gap:13px; margin-top:25px; }
+.srpg-contact-item > svg { flex-shrink:0; margin-top:2px; color:#e0c67e; }
+.srpg-contact-item strong, .srpg-contact-item small { display:block; }
+.srpg-contact-item strong { font-size:14px; }
+.srpg-contact-item small { margin-top:5px; color:#e9e1d1; font-size:12px; line-height:1.6; overflow-wrap:anywhere; }
+.srpg-enquiry-form { display:grid; gap:17px; padding:30px; border:1px solid var(--srpg-border); border-radius:20px; background:#fff; box-shadow:0 8px 28px rgba(38,48,35,.06); }
+.srpg-enquiry-form h2 { margin:0; color:var(--srpg-navy); font-size:24px; }
+.srpg-enquiry-form > p { margin:-10px 0 0; color:var(--srpg-muted); font-size:12px; }
+.srpg-enquiry-form label { display:grid; gap:8px; color:var(--srpg-navy); font-size:12px; font-weight:750; }
+.srpg-enquiry-form input, .srpg-enquiry-form select, .srpg-enquiry-form textarea {
+  width:100%; min-width:0; min-height:46px; padding:12px 13px; border:1px solid #e5dcc9;
+  border-radius:10px; outline:none; color:var(--srpg-text); background:white; font-size:13px; font-weight:400;
+}
+.srpg-enquiry-form textarea { min-height:100px; resize:vertical; }
+.srpg-enquiry-form input:focus, .srpg-enquiry-form select:focus, .srpg-enquiry-form textarea:focus { border-color:var(--srpg-blue); box-shadow:0 0 0 3px rgba(23,75,56,.1); }
+.srpg-form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.srpg-notice { padding:13px 14px; border:1px solid #b9e5cc; border-radius:10px; color:#146c43; background:#edfcf3; font-size:12px; line-height:1.6; }
+.srpg-footer { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:60px; padding:50px max(24px, calc((100% - 1180px)/2)); color:#e7dfcf; background:#0d3529; }
+.srpg-footer-main { max-width:460px; }
+.srpg-footer-brand { color:#fff; }
+.srpg-footer-brand small { color:#d6cfbc; }
+.srpg-footer-main > p { max-width:390px; margin:19px 0; color:#d6cfbc; font-size:13px; line-height:1.9; }
+.srpg-footer-contact { display:inline-flex; align-items:center; gap:8px; padding:0; border:0; color:#fff; background:transparent; font-size:13px; font-weight:700; }
+.srpg-footer-links { display:flex; flex-wrap:wrap; align-content:flex-start; align-items:center; gap:18px; }
+.srpg-footer-links strong { width:100%; color:#fff; font-size:13px; }
+.srpg-footer-links button { padding:0; border:0; color:#d6cfbc; background:transparent; font-size:12px; }
+.srpg-footer-links button:hover, .srpg-footer-contact:hover { color:#fff; }
+.srpg-copyright { padding:17px 24px; color:#d6cfbc; background:#08271e; text-align:center; font-size:11px; }
+
+@media (max-width: 980px) {
+  .srpg-header { padding-right:24px; padding-left:24px; }
+  .srpg-nav { gap:16px; }
+  .srpg-hero { gap:32px; }
+  .srpg-hero-image > img { height:370px; }
+  .srpg-room-grid, .srpg-facility-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .srpg-footer { gap:30px; }
+}
+@media (max-width: 720px) {
+  .srpg-topline { font-size:11px; }
+  .srpg-header { min-height:72px; padding:0 18px; }
+  .srpg-brand strong { font-size:21px; }
+  .srpg-menu-button { display:grid; }
+  .srpg-nav { position:absolute; top:100%; right:0; left:0; display:none; align-items:stretch; gap:4px; padding:14px 20px 20px; border-bottom:1px solid var(--srpg-border); background:#fff; box-shadow:0 15px 25px rgba(38,48,35,.08); }
+  .srpg-nav.is-open { display:flex; flex-direction:column; }
+  .srpg-nav button { padding:12px; text-align:left; }
+  .srpg-nav .srpg-nav-cta { text-align:center; }
+  .srpg-hero { grid-template-columns:1fr; gap:35px; padding:48px 20px 60px; }
+  .srpg-hero h1 { font-size:clamp(42px,11vw,56px); letter-spacing:-1.8px; }
+  .srpg-hero-copy > p { font-size:15px; }
+  .srpg-hero-image > img { height:290px; border-radius:20px; }
+  .srpg-image-note { right:10px; bottom:12px; max-width:240px; padding:12px; }
+  .srpg-section { padding:56px 20px; }
+  .srpg-section-heading { align-items:flex-start; flex-direction:column; gap:12px; }
+  .srpg-room-grid, .srpg-benefits, .srpg-facility-grid, .srpg-gallery-grid { grid-template-columns:1fr; }
+  .srpg-benefits { gap:8px; padding:28px 20px; }
+  .srpg-benefits > div { padding:12px; }
+  .srpg-room-image { height:230px; }
+  .srpg-detail-layout, .srpg-contact-layout { grid-template-columns:1fr; }
+  .srpg-detail-image { height:300px; }
+  .srpg-detail-copy, .srpg-contact-info, .srpg-enquiry-form { padding:22px; }
+  .srpg-feature-list { grid-template-columns:1fr 1fr; }
+  .srpg-callout { align-items:flex-start; flex-direction:column; padding:26px 22px; }
+  .srpg-gallery-item { height:250px; }
+  .srpg-form-row { grid-template-columns:1fr; }
+  .srpg-footer { grid-template-columns:1fr; gap:32px; padding:40px 20px 28px; }
+  .srpg-footer-links { gap:14px; }
+}
+@media (max-width: 420px) {
+  .srpg-trust-line { gap:12px; }
+  .srpg-feature-list { grid-template-columns:1fr; }
+  .srpg-filter-row { align-items:stretch; flex-direction:column; }
+  .srpg-filter-row select { width:100%; }
+}
+
+/* Elegant ivory, forest-green and champagne-gold finish */
+.srpg { background:#fbf7ef; }
+.srpg-header { box-shadow:0 8px 28px rgba(49,43,27,.035); }
+.srpg-hero { position:relative; }
+.srpg-hero-image > img { border-radius:28px; box-shadow:0 24px 58px rgba(55,43,22,.17); }
+.srpg-room-card, .srpg-facility-card, .srpg-enquiry-form, .srpg-detail-copy { box-shadow:0 10px 28px rgba(55,43,22,.055); }
+.srpg-room-card { border-color:#eadfc9; }
+.srpg-room-card-bottom { border-top-color:#eee5d4; }
+.srpg-primary { background:linear-gradient(135deg,#174b38,#0d3529); box-shadow:0 8px 20px rgba(23,75,56,.17); }
+.srpg-primary:hover { background:#0b2e23; }
+.srpg-nav .srpg-nav-cta { background:linear-gradient(135deg,#c7a44c,#9a7423); box-shadow:0 7px 18px rgba(154,116,35,.17); }
+.srpg-nav .srpg-nav-cta:hover { background:#86631c; }
+.srpg-callout { background:linear-gradient(115deg,#103d2f,#1d6047); }
+.srpg-contact-info { background:linear-gradient(145deg,#103d2f,#1d6047); }
+.srpg-footer { background:#0d3529; }
+.srpg-copyright { background:#08271e; }
+@media (prefers-reduced-motion: reduce) { .srpg *, .srpg *::before, .srpg *::after { transition:none !important; scroll-behavior:auto !important; } }
