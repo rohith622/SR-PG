@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ToastProvider, useToast } from './components/common/Toast';
 import { AppShell } from './components/layout/AppShell';
@@ -12,7 +11,6 @@ import { AddTenantModal } from './components/tenants/AddTenantModal';
 import { storage, resetToSampleData } from './services/storageService';
 import roomService from './services/roomService';
 import bedService from './services/bedService';
-import PublicWebsite from './PublicWebsite';
 
 function MainApp() {
   const toast = useToast();
@@ -30,18 +28,12 @@ function MainApp() {
 
   // Contextual modals state
   const [isAddRoomOpen, setIsAddRoomOpen] = useState(false);
-  const [addBedState, setAddBedState] = useState({
-    isOpen: false,
-    preselectedRoom: null,
-  });
-  const [addTenantState, setAddTenantState] = useState({
-    isOpen: false,
-    preselectedBed: null,
-  });
+  const [addBedState, setAddBedState] = useState({ isOpen: false, preselectedRoom: null });
+  const [addTenantState, setAddTenantState] = useState({ isOpen: false, preselectedBed: null });
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = useState(false);
 
-  // Refresh trigger counter to sync state between screens
+  // Refresh trigger counter to sync state between dashboard and bed management
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Load shared property and room/bed data for modals
@@ -56,11 +48,8 @@ function MainApp() {
       ]);
 
       setAvailableRooms(roomsRes.data || []);
-
       const allBeds = bedsRes.data || [];
-      setAvailableBeds(
-        allBeds.filter((bed) => bed.status === 'Available')
-      );
+      setAvailableBeds(allBeds.filter((b) => b.status === 'Available'));
     } catch (err) {
       console.error('Failed to load modal reference data:', err);
     }
@@ -70,7 +59,7 @@ function MainApp() {
     refreshModalData();
   }, [refreshKey]);
 
-  // Add Room / Add Bed / Add Tenant workflows
+  // Handlers for Add Room / Add Bed / Add Tenant workflows
   const handleOpenAddRoom = () => {
     refreshModalData();
     setIsAddRoomOpen(true);
@@ -78,20 +67,14 @@ function MainApp() {
 
   const handleOpenAddBed = (room = null) => {
     refreshModalData();
-
     setAddBedState({
       isOpen: true,
-      preselectedRoom:
-        room ||
-        (selectedRoomId
-          ? availableRooms.find((r) => r.id === selectedRoomId)
-          : null),
+      preselectedRoom: room || (selectedRoomId ? availableRooms.find((r) => r.id === selectedRoomId) : null),
     });
   };
 
   const handleOpenAddTenant = (bed = null) => {
     refreshModalData();
-
     setAddTenantState({
       isOpen: true,
       preselectedBed: bed,
@@ -99,22 +82,21 @@ function MainApp() {
   };
 
   const handleRoomCreated = (newRoom) => {
-    setRefreshKey((key) => key + 1);
+    setRefreshKey((k) => k + 1);
+    // As per Page 5: "After a successful save, return to Bed Management and focus the newly created room."
     setSelectedRoomId(newRoom.id);
     setCurrentTab('beds');
   };
 
   const handleBedCreated = (newBed) => {
-    setRefreshKey((key) => key + 1);
-
+    setRefreshKey((k) => k + 1);
     if (newBed.roomId) {
       setSelectedRoomId(newBed.roomId);
     }
   };
 
   const handleTenantCreated = (newTenant) => {
-    setRefreshKey((key) => key + 1);
-
+    setRefreshKey((k) => k + 1);
     if (newTenant.roomId) {
       setSelectedRoomId(newTenant.roomId);
     }
@@ -127,7 +109,7 @@ function MainApp() {
 
   const handleResetDataConfirm = () => {
     resetToSampleData();
-    setRefreshKey((key) => key + 1);
+    setRefreshKey((k) => k + 1);
     setIsResetConfirmOpen(false);
     toast.success('Sample demo data restored successfully.');
   };
@@ -135,9 +117,7 @@ function MainApp() {
   const handleSignOutConfirm = () => {
     localStorage.removeItem('sr_pg_auth_token');
     setIsSignOutConfirmOpen(false);
-    toast.info(
-      'You have signed out. (In backend mode, redirects to login).'
-    );
+    toast.info('You have signed out. (In backend mode, redirects to login).');
   };
 
   return (
@@ -176,43 +156,33 @@ function MainApp() {
         <TenantHistoryPage key={`history-${refreshKey}`} />
       )}
 
-      {/* Add Room Modal */}
+      {/* Contextual Modal 1: Add Room */}
       <AddRoomModal
         isOpen={isAddRoomOpen}
         onClose={() => setIsAddRoomOpen(false)}
         onRoomCreated={handleRoomCreated}
       />
 
-      {/* Add Bed Modal */}
+      {/* Contextual Modal 2: Add Bed */}
       <AddBedModal
         isOpen={addBedState.isOpen}
-        onClose={() =>
-          setAddBedState({
-            isOpen: false,
-            preselectedRoom: null,
-          })
-        }
+        onClose={() => setAddBedState({ isOpen: false, preselectedRoom: null })}
         rooms={availableRooms}
         selectedRoom={addBedState.preselectedRoom}
         onBedCreated={handleBedCreated}
       />
 
-      {/* Add Tenant Modal */}
+      {/* Contextual Modal 3: Add Tenant */}
       <AddTenantModal
         isOpen={addTenantState.isOpen}
-        onClose={() =>
-          setAddTenantState({
-            isOpen: false,
-            preselectedBed: null,
-          })
-        }
+        onClose={() => setAddTenantState({ isOpen: false, preselectedBed: null })}
         preselectedBed={addTenantState.preselectedBed}
         rooms={availableRooms}
         availableBeds={availableBeds}
         onTenantCreated={handleTenantCreated}
       />
 
-      {/* Reset Demo Data Confirmation */}
+      {/* Confirm Dialog: Reset Demo Data */}
       <ConfirmDialog
         isOpen={isResetConfirmOpen}
         onClose={() => setIsResetConfirmOpen(false)}
@@ -223,7 +193,7 @@ function MainApp() {
         variant="danger"
       />
 
-      {/* Sign Out Confirmation */}
+      {/* Confirm Dialog: Sign Out */}
       <ConfirmDialog
         isOpen={isSignOutConfirmOpen}
         onClose={() => setIsSignOutConfirmOpen(false)}
@@ -237,29 +207,12 @@ function MainApp() {
   );
 }
 
-function AppRouter() {
-  const path = window.location.pathname;
-
-  // Public-facing website
-  if (path === '/') {
-    return <PublicWebsite />;
-  }
-
-  // Existing owner management portal
-  if (path === '/owner' || path.startsWith('/owner/')) {
-    return (
-      <ToastProvider>
-        <MainApp />
-      </ToastProvider>
-    );
-  }
-
-  // Unknown paths return to the public website
-  return <PublicWebsite />;
-}
-
 export function App() {
-  return <AppRouter />;
+  return (
+    <ToastProvider>
+      <MainApp />
+    </ToastProvider>
+  );
 }
 
 export default App;

@@ -1,5 +1,10 @@
 import React from 'react';
-import { DoorClosed, BedDouble, UserPlus, ArrowRight } from 'lucide-react';
+import {
+  DoorClosed,
+  BedDouble,
+  UserPlus,
+  ArrowRight,
+} from 'lucide-react';
 
 export const QuickActions = ({
   onAddRoom,
@@ -8,51 +13,62 @@ export const QuickActions = ({
   onViewBedManagement,
 }) => {
   return (
-    <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 rounded-2xl p-5 text-white shadow-md mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <h3 className="text-lg font-extrabold tracking-tight">
+    <div className="mb-6 flex flex-col gap-5 rounded-lg border border-emerald-800/50 bg-gradient-to-br from-[#0B1713] via-emerald-950 to-[#10271D] p-5 text-white shadow-lg shadow-emerald-950/10 md:flex-row md:items-center md:justify-between md:p-6">
+
+      {/* Heading */}
+      <div className="min-w-0">
+        <div className="mb-2 flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300">
+            Quick Access
+          </span>
+        </div>
+
+        <h3 className="text-lg font-extrabold tracking-tight sm:text-xl">
           Quick Property Actions
         </h3>
-        <p className="text-xs text-blue-100/90 mt-0.5 max-w-md leading-relaxed">
-          One-click shortcuts to expand room capacity, add beds, and allocate tenants with auto-validation.
+
+        <p className="mt-1 max-w-md text-xs leading-relaxed text-emerald-100/70">
+          Manage rooms, beds, and tenant allocations from one place.
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2.5">
+      {/* Action Buttons */}
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={onAddRoom}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold backdrop-blur-xs transition-colors border border-white/15"
+          className="flex items-center gap-2 rounded-xl border border-emerald-700/60 bg-white/5 px-3.5 py-2.5 text-xs font-semibold text-emerald-50 transition-colors hover:border-emerald-500 hover:bg-emerald-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
         >
-          <DoorClosed className="w-4 h-4" />
+          <DoorClosed className="h-4 w-4 text-emerald-300" />
           <span>Add Room</span>
         </button>
 
         <button
           type="button"
           onClick={onAddBed}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold backdrop-blur-xs transition-colors border border-white/15"
+          className="flex items-center gap-2 rounded-xl border border-emerald-700/60 bg-white/5 px-3.5 py-2.5 text-xs font-semibold text-emerald-50 transition-colors hover:border-emerald-500 hover:bg-emerald-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
         >
-          <BedDouble className="w-4 h-4" />
+          <BedDouble className="h-4 w-4 text-emerald-300" />
           <span>Add Bed</span>
         </button>
 
         <button
           type="button"
           onClick={onAddTenant}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-slate-100 text-blue-900 text-xs font-extrabold shadow-sm transition-all"
+          className="flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-bold text-emerald-950 shadow-sm shadow-black/10 transition-colors hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-950"
         >
-          <UserPlus className="w-4 h-4 text-blue-600" />
+          <UserPlus className="h-4 w-4" />
           <span>Add Tenant</span>
         </button>
 
         <button
           type="button"
           onClick={onViewBedManagement}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-900/60 hover:bg-blue-900 text-blue-100 text-xs font-semibold transition-colors"
+          className="flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-emerald-300 transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
         >
           <span>Bed Management</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+          <ArrowRight className="h-3.5 w-3.5" />
         </button>
       </div>
     </div>

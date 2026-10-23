@@ -1,15 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { SummaryCards } from '../components/dashboard/SummaryCards';
 import { OccupancyBar } from '../components/dashboard/OccupancyBar';
 import { QuickActions } from '../components/dashboard/QuickActions';
-import { RoomOverview } from '../components/dashboard/RoomOverview';
-import { RecentActivityList } from '../components/dashboard/RecentActivityList';
 import { RentOverview } from '../components/dashboard/RentOverview';
-import { Button } from '../components/common/Button';
 import { EmptyState } from '../components/common/EmptyState';
 import dashboardService from '../services/dashboardService';
-import { DoorClosed, Plus, RefreshCw } from 'lucide-react';
+import { DoorClosed, Plus } from 'lucide-react';
 
 export const DashboardPage = ({
   onNavigateTab,
@@ -58,27 +55,6 @@ export const DashboardPage = ({
         title="Property Dashboard"
         subtitle="Real-time occupancy status, room capacity utilization, and collection summary."
         breadcrumbs={[{ label: 'Home' }, { label: 'Dashboard' }]}
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={RefreshCw}
-              onClick={loadDashboardData}
-              disabled={isLoading}
-            >
-              Refresh
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              icon={Plus}
-              onClick={onOpenAddRoom}
-            >
-              Add Room
-            </Button>
-          </div>
-        }
       />
 
       {/* Loading Skeleton */}
@@ -122,20 +98,20 @@ export const DashboardPage = ({
           />
 
           {/* 4. Room Overview Table */}
-          <RoomOverview
+          {/* <RoomOverview
             rooms={summary?.roomOverview || []}
             onSelectRoom={handleRoomClick}
             onViewAllRooms={() => onNavigateTab('beds')}
-          />
+          /> */}
 
           {/* 5. Rent Cashflow & Recent Activity */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"> */}
             <RentOverview
               rentSummary={summary?.rent}
               onManageBeds={() => onNavigateTab('beds')}
             />
-            <RecentActivityList activities={summary?.recentActivities || []} />
-          </div>
+            {/* <RecentActivityList activities={summary?.recentActivities || []} /> */}
+          {/* </div> */}
         </>
       )}
     </div>
