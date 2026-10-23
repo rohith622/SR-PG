@@ -44,7 +44,7 @@ export const AppShell = ({
         />
 
         {/* Page Content View Area */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 w-full mx-auto">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 w-full mx-auto">
           {children}
         </main>
       </div>

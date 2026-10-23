@@ -5,12 +5,15 @@ import {
   History,
   Building2,
   LogOut,
+  IndianRupee
 } from 'lucide-react';
 
 export const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'beds', label: 'Bed Management', icon: BedDouble },
   { id: 'history', label: 'Tenant History', icon: History },
+    { id: 'rent', label: 'Rent Payment', icon: IndianRupee },
+
 ];
 
 export const Sidebar = ({

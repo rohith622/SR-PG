@@ -3,15 +3,13 @@ import { ToastProvider, useToast } from './components/common/Toast';
 import { AppShell } from './components/layout/AppShell';
 import { ConfirmDialog } from './components/common/ConfirmDialog';
 import { DashboardPage } from './pages/DashboardPage';
-import { BedManagementPage } from './pages/BedManagementPage';
-import { TenantHistoryPage } from './pages/TenantHistoryPage';
 import { AddRoomModal } from './components/rooms/AddRoomModal';
-import { AddBedModal } from './components/beds/AddBedModal';
-import { AddTenantModal } from './components/tenants/AddTenantModal';
 import { storage, resetToSampleData } from './services/storageService';
 import roomService from './services/roomService';
 import bedService from './services/bedService';
-
+import BedManagement from './pages/BedManagementPage';
+import TenantHistoryPage from './pages/TenantHistoryPage';
+import RentPaymentPage from './pages/RentPaymentPage';
 function MainApp() {
   const toast = useToast();
 
@@ -142,20 +140,17 @@ function MainApp() {
 
       {/* Tab 2: Bed Management */}
       {currentTab === 'beds' && (
-        <BedManagementPage
-          key={`beds-${refreshKey}`}
-          initialSelectedRoomId={selectedRoomId}
-          onOpenAddRoom={handleOpenAddRoom}
-          onOpenAddBed={(room) => handleOpenAddBed(room)}
-          onOpenAddTenant={(bed) => handleOpenAddTenant(bed)}
-        />
+      <BedManagement key={`beds-${refreshKey}`} />
+
       )}
 
       {/* Tab 3: Tenant History */}
       {currentTab === 'history' && (
         <TenantHistoryPage key={`history-${refreshKey}`} />
       )}
-
+{currentTab === 'rent' && (
+  <RentPaymentPage key={`rent-${refreshKey}`} />
+)}
       {/* Contextual Modal 1: Add Room */}
       <AddRoomModal
         isOpen={isAddRoomOpen}
@@ -164,23 +159,23 @@ function MainApp() {
       />
 
       {/* Contextual Modal 2: Add Bed */}
-      <AddBedModal
+      {/* <AddBedModal
         isOpen={addBedState.isOpen}
         onClose={() => setAddBedState({ isOpen: false, preselectedRoom: null })}
         rooms={availableRooms}
         selectedRoom={addBedState.preselectedRoom}
         onBedCreated={handleBedCreated}
-      />
+      /> */}
 
       {/* Contextual Modal 3: Add Tenant */}
-      <AddTenantModal
+      {/* <AddTenantModal
         isOpen={addTenantState.isOpen}
         onClose={() => setAddTenantState({ isOpen: false, preselectedBed: null })}
         preselectedBed={addTenantState.preselectedBed}
         rooms={availableRooms}
         availableBeds={availableBeds}
         onTenantCreated={handleTenantCreated}
-      />
+      /> */}
 
       {/* Confirm Dialog: Reset Demo Data */}
       <ConfirmDialog
