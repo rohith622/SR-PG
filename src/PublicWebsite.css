@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap');
+
 /* SR-PG Public Website — styles matching PublicWebsite.jsx */
 
 :root {
@@ -17,7 +19,7 @@
   width: 100%;
   color: var(--srpg-text);
   background: #fff;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "DM Sans", Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.5;
 }
 .srpg button, .srpg input, .srpg select, .srpg textarea { font: inherit; }
@@ -279,3 +281,43 @@
 .srpg-footer { background:#0d3529; }
 .srpg-copyright { background:#08271e; }
 @media (prefers-reduced-motion: reduce) { .srpg *, .srpg *::before, .srpg *::after { transition:none !important; scroll-behavior:auto !important; } }
+
+
+/* Professional typography and consistent line-icon treatment */
+.srpg h1,
+.srpg h2,
+.srpg .srpg-section-title,
+.srpg .srpg-section-heading h2,
+.srpg .srpg-page-heading h1,
+.srpg .srpg-callout h2,
+.srpg .srpg-contact-info h2 {
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.45px;
+}
+.srpg svg {
+  display: block;
+  flex-shrink: 0;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.srpg-facility-icon {
+  width: 54px;
+  height: 54px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(161, 122, 37, 0.12);
+  border-radius: 16px;
+  box-shadow: 0 5px 14px rgba(55, 43, 22, 0.045);
+}
+.srpg-facility-icon svg { width: 24px; height: 24px; }
+.srpg-facility-card {
+  min-height: 178px;
+  padding: 27px;
+  box-shadow: 0 8px 24px rgba(55, 43, 22, 0.045);
+}
+.srpg-facility-card h3 { font-family: "DM Sans", sans-serif; font-weight: 700; letter-spacing: -0.2px; }
+.srpg-facility-card p { font-size: 13.5px; line-height: 1.75; }
+.srpg-facility-card:hover { box-shadow: 0 14px 30px rgba(55, 43, 22, 0.09); }
+.srpg-brand strong, .srpg-nav button, .srpg-primary, .srpg-text-button, .srpg-link { font-family: "DM Sans", sans-serif; }
+@media (max-width: 720px) { .srpg-facility-card { min-height: 0; padding: 23px; } }
