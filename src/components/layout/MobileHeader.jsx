@@ -1,39 +1,39 @@
+
 import React from 'react';
-import { Menu, Building2 } from 'lucide-react';
+import { Menu, Building2, Sparkles } from 'lucide-react';
 
 export const MobileHeader = ({ onOpenDrawer, propertyInfo }) => {
   return (
-    <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between border-b border-emerald-800/50 bg-[#0B1713]/95 backdrop-blur-md px-4 py-3">
-
-      {/* Brand Logo & Name */}
-      <button
-        type="button"
-        onClick={() => {}}
-        className="flex items-center gap-2.5 min-w-0 text-left"
-      >
-        <div className="w-10 h-10 rounded-xl bg-emerald-900 border border-emerald-700/50 flex items-center justify-center text-emerald-300 shadow-lg shadow-black/20 shrink-0">
-          <Building2 className="w-5 h-5" />
+    <header className="sticky top-0 z-40 flex w-full items-center justify-between gap-3 border-b border-[#d7b76c]/20 bg-[#103b2c]/[0.98] px-3 py-3 shadow-sm shadow-black/10 backdrop-blur-md sm:px-5 lg:hidden">
+      {/* Brand */}
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#d7b76c]/40 bg-[#d7b76c]/10 shadow-inner sm:h-11 sm:w-11">
+          <Building2
+            className="h-5 w-5 text-[#e8cd8b] sm:h-6 sm:w-6"
+            strokeWidth={1.8}
+          />
         </div>
 
         <div className="min-w-0">
-          <h1 className="text-sm font-bold text-white truncate">
+          <h1 className="truncate text-sm font-extrabold tracking-tight text-white sm:text-base">
             {propertyInfo?.name || 'SR PG Living'}
           </h1>
 
-          <p className="text-[10px] text-emerald-300/80 font-medium truncate">
-            Property Management
+          <p className="mt-0.5 flex items-center gap-1 text-[10px] font-medium text-[#e8cd8b]/90 sm:text-[11px]">
+            <Sparkles className="h-3 w-3 shrink-0" />
+            <span className="truncate">Property Management</span>
           </p>
         </div>
-      </button>
+      </div>
 
-      {/* Hamburger Menu */}
+      {/* Menu button */}
       <button
         type="button"
         onClick={onOpenDrawer}
         aria-label="Open navigation menu"
-        className="flex items-center justify-center w-11 h-11 shrink-0 rounded-xl text-emerald-300 hover:bg-emerald-900/60 hover:text-white active:bg-emerald-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] text-[#e8cd8b] transition-colors hover:border-[#d7b76c]/40 hover:bg-white/10 hover:text-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7b76c]"
       >
-        <Menu className="w-6 h-6" />
+        <Menu className="h-6 w-6" strokeWidth={1.8} />
       </button>
     </header>
   );

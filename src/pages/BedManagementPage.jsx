@@ -169,11 +169,11 @@ const INITIAL_ROOMS = [
 const STATUS = {
   occupied: {
     label: 'Occupied',
-    dot: 'bg-blue-500',
-    text: 'text-blue-700',
-    badge: 'bg-blue-50 text-blue-700 border-blue-100',
-    bed: 'text-blue-600',
-    card: 'border-blue-200 bg-blue-50/40',
+    dot: 'bg-emerald-700',
+    text: 'text-emerald-800',
+    badge: 'bg-emerald-50 text-emerald-800 border-blue-100',
+    bed: 'text-emerald-700',
+    card: 'border-emerald-200 bg-emerald-50/40',
   },
   available: {
     label: 'Available',
@@ -207,7 +207,7 @@ function getCounts(rooms) {
 
 function SummaryCard({ label, value, icon: Icon, color }) {
   return (
-    <div className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+    <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-[#e9e2d4] bg-white p-4 shadow-[0_4px_18px_-12px_rgba(28,45,35,0.18)]">
       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${color}`}>
         <Icon size={19} />
       </div>
@@ -247,14 +247,14 @@ function RoomCard({ room, selected, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`min-w-0 rounded-md border p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md ${
+      className={`min-w-0 rounded-xl border p-3.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-14px_rgba(28,45,35,0.25)] sm:p-4 ${
         selected
-          ? 'border-blue-500 bg-white ring-1 ring-blue-500'
+          ? 'border-[#c6a96a] bg-white ring-1 ring-[#c6a96a] shadow-sm'
           : counts.available === 0 && counts.maintenance === 0
-            ? 'border-rose-200 bg-rose-50/80'
+            ? 'border-rose-200 bg-rose-50/70'
             : counts.available === counts.beds
               ? 'border-emerald-200 bg-emerald-50/50'
-              : 'border-slate-200 bg-white hover:border-emerald-300'
+              : 'border-[#e8e2d7] bg-white hover:border-[#c6a96a]'
       }`}
     >
       <div className="flex items-center justify-between gap-2">
@@ -264,7 +264,7 @@ function RoomCard({ room, selected, onClick }) {
         <ChevronRight size={16} className="text-slate-400" />
       </div>
 
-      <p className={`mt-1 text-sm font-semibold ${counts.available === 0 && counts.maintenance === 0 ? 'text-rose-600' : 'text-blue-700'}`}>
+      <p className={`mt-1 text-sm font-semibold ${counts.available === 0 && counts.maintenance === 0 ? 'text-rose-600' : 'text-emerald-800'}`}>
         {counts.occupied + counts.maintenance} / {counts.beds}
         <span className="ml-1 text-xs font-normal text-slate-400">filled</span>
       </p>
@@ -294,7 +294,7 @@ function TenantInitials({ name }) {
     .toUpperCase();
 
   return (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-500 to-blue-900 text-xs font-bold text-white">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#174b38] to-[#0b241b] text-xs font-bold text-white">
       {initials}
     </div>
   );
@@ -334,14 +334,14 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#0b241b]/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="add-tenant-title"
-        className="w-full max-w-md rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl sm:p-6"
+        className="w-full max-w-md rounded-t-2xl border border-[#e9e2d4] bg-[#fffefa] p-5 shadow-2xl sm:rounded-2xl sm:p-6"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between">
@@ -374,7 +374,7 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Enter full name"
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+              className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
               autoFocus
               required
             />
@@ -392,7 +392,7 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
               value={phone}
               onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 10))}
               placeholder="10-digit mobile number"
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+              className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
               required
             />
           </div>
@@ -406,7 +406,7 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
               type="date"
               value={joined}
               onChange={(event) => setJoined(event.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+              className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
               required
             />
           </div>
@@ -507,9 +507,9 @@ export default function BedManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F7F6] text-slate-900">
+    <div className="min-h-screen bg-[#f7f5ef] text-slate-900">
       {/* Page Header */}
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-[#e9e2d4] bg-white/95 backdrop-blur">
   
 <div className="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
   {/* Page title */}
@@ -522,7 +522,7 @@ export default function BedManagement() {
       </span>
     </div>
 
-    <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+    <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900">
       Bed Management
     </h1>
 
@@ -587,7 +587,7 @@ export default function BedManagement() {
             className={`shrink-0 rounded-md border px-3 py-2 text-[11px] font-semibold sm:rounded-lg sm:px-4 sm:py-2.5 sm:text-xs ${
               selectedFloor === floor
                 ? 'border-emerald-900 bg-emerald-900 text-white'
-                : 'border-slate-200 bg-white text-slate-600'
+                : 'border-[#e5dfd3] bg-white text-slate-600'
             }`}
           >
             {floor}
@@ -634,7 +634,7 @@ export default function BedManagement() {
               return (
                 <section
                   key={floor}
-                  className="overflow-hidden rounded-md border border-slate-200 bg-white"
+                  className="overflow-hidden rounded-2xl border border-[#e9e2d4] bg-white shadow-[0_4px_18px_-14px_rgba(28,45,35,0.18)]"
                 >
                   <div className="flex items-center justify-between gap-3 px-4 pb-4 pt-5 sm:px-5">
                     <div>
@@ -701,9 +701,9 @@ export default function BedManagement() {
           {/* Selected Room Details */}
           {showRoomDetails && selectedRoom && (
           
-<section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
+<section className="min-w-0 overflow-hidden rounded-2xl border border-[#e9e2d4] bg-white shadow-[0_4px_18px_-14px_rgba(28,45,35,0.18)]">
   {/* Room summary */}
-  <div className="border-b border-slate-100 p-3 sm:p-4">
+  <div className="border-b border-[#eee8dd] p-4 sm:p-5">
     <div className="flex items-start justify-between gap-2">
       <div className="min-w-0">
         <p className="text-[10px] font-semibold tracking-wide text-emerald-800 sm:text-xs">
@@ -729,9 +729,9 @@ export default function BedManagement() {
 
     {/* Compact occupancy cards */}
     <div className="mt-3 grid grid-cols-3 gap-2">
-      <div className="rounded-lg bg-blue-50 px-2.5 py-2">
-        <p className="text-[10px] text-blue-700 sm:text-xs">Occupied</p>
-        <p className="mt-0.5 text-lg font-bold text-blue-800">
+      <div className="rounded-lg bg-emerald-50 px-2.5 py-2">
+        <p className="text-[10px] text-emerald-800 sm:text-xs">Occupied</p>
+        <p className="mt-0.5 text-lg font-bold text-emerald-900">
           {selectedRoomCounts.occupied}
         </p>
       </div>
@@ -759,7 +759,7 @@ export default function BedManagement() {
           title={`Bed ${bed.id}: ${STATUS[bed.status].label}`}
           className={`h-full flex-1 ${
             bed.status === 'occupied'
-              ? 'bg-blue-500'
+              ? 'bg-emerald-700'
               : bed.status === 'available'
                 ? 'bg-emerald-500'
                 : 'bg-orange-500'
@@ -782,7 +782,7 @@ export default function BedManagement() {
         value={bedFilter}
         onChange={(event) => setBedFilter(event.target.value)}
         aria-label="Filter beds by status"
-        className="max-w-[125px] rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11px] text-slate-600 outline-none sm:max-w-[145px] sm:text-xs"
+        className="max-w-[125px] rounded-2xl border border-[#e9e2d4] bg-white shadow-[0_4px_18px_-14px_rgba(28,45,35,0.18)] px-2 py-1.5 text-[11px] text-slate-600 outline-none sm:max-w-[145px] sm:text-xs"
       >
         <option value="all">All Beds</option>
         <option value="occupied">Occupied</option>

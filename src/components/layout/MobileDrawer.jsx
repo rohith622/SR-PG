@@ -1,5 +1,11 @@
+
 import React, { useEffect, useRef } from 'react';
-import { X, Building2, LogOut } from 'lucide-react';
+import {
+  X,
+  Building2,
+  LogOut,
+  ChevronRight,
+} from 'lucide-react';
 import { NAV_ITEMS } from './Sidebar';
 
 export const MobileDrawer = ({
@@ -18,8 +24,8 @@ export const MobileDrawer = ({
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -49,55 +55,55 @@ export const MobileDrawer = ({
         type="button"
         aria-label="Close navigation menu"
         onClick={onClose}
-        className="fixed inset-0 bg-black/65 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
       />
 
       {/* Drawer */}
-      <div
+      <aside
         ref={drawerRef}
-        className="relative z-10 flex h-full w-[280px] max-w-[85vw] flex-col
-        bg-[#0B1713] shadow-2xl animate-slideInLeft"
+        className="relative z-10 flex h-full w-[290px] max-w-[88vw] flex-col border-r border-[#d7b76c]/20 bg-gradient-to-b from-[#103b2c] via-[#0c3225] to-[#08271d] text-white shadow-2xl"
       >
-        {/* Brand Header */}
-        <div className="flex items-center justify-between border-b
-          border-emerald-900/60 bg-emerald-950/50 p-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center
-              justify-center rounded-xl border border-emerald-700/50
-              bg-emerald-900 text-emerald-300">
-              <Building2 className="h-5 w-5" />
+        {/* Brand header */}
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-5">
+          <button
+            type="button"
+            onClick={() => {
+              onSelectTab('dashboard');
+              onClose();
+            }}
+            className="flex min-w-0 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7b76c]"
+          >
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#d7b76c]/40 bg-[#d7b76c]/10">
+              <Building2 className="h-5 w-5 text-[#e8cd8b]" />
             </div>
 
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-white">
+              <p className="truncate text-sm font-extrabold tracking-tight text-white">
                 {propertyInfo?.name || 'SR PG Living'}
               </p>
-              <p className="mt-0.5 text-[11px] font-medium text-emerald-300/70">
+              <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[#e8cd8b]">
                 Property Management
               </p>
             </div>
-          </div>
+          </button>
 
           <button
             type="button"
             onClick={onClose}
             aria-label="Close navigation menu"
-            className="ml-2 flex h-10 w-10 shrink-0 items-center
-              justify-center rounded-xl text-slate-400 transition-colors
-              hover:bg-emerald-900 hover:text-white
-              focus-visible:outline-none focus-visible:ring-2
-              focus-visible:ring-emerald-400"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 text-emerald-100/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7b76c]"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-2 overflow-y-auto px-4 py-6"
-          aria-label="Mobile navigation">
-          <p className="mb-4 px-3 text-[10px] font-bold uppercase
-            tracking-[0.18em] text-emerald-500/80">
-            Main Menu
+        <nav
+          className="flex-1 space-y-2 overflow-y-auto px-3 py-6"
+          aria-label="Mobile navigation"
+        >
+          <p className="mb-4 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-100/50">
+            Workspace
           </p>
 
           {NAV_ITEMS.map((item) => {
@@ -113,61 +119,74 @@ export const MobileDrawer = ({
                   onClose();
                 }}
                 aria-current={isActive ? 'page' : undefined}
-                className={`relative flex w-full items-center gap-3
-                  rounded-xl px-3 py-3.5 text-left transition-all
-                  duration-200 focus-visible:outline-none
-                  focus-visible:ring-2 focus-visible:ring-emerald-400 ${
-                    isActive
-                      ? 'bg-emerald-900 text-white shadow-md shadow-black/20 ring-1 ring-emerald-700/50'
-                      : 'text-slate-400 hover:bg-emerald-950/70 hover:text-emerald-300'
-                  }`}
+                className={`group relative flex min-h-12 w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7b76c] ${
+                  isActive
+                    ? 'border-[#d7b76c]/25 bg-gradient-to-r from-[#d7b76c]/20 to-[#d7b76c]/5 text-[#f4dfa7]'
+                    : 'border-transparent text-emerald-100/70 hover:bg-white/[0.06] hover:text-white'
+                }`}
               >
                 {isActive && (
-                  <span className="absolute inset-y-3 left-0 w-1
-                    rounded-r-full bg-emerald-400" />
+                  <span className="absolute bottom-2.5 left-0 top-2.5 w-[3px] rounded-r-full bg-[#e3c477]" />
                 )}
 
-                <div className={`flex h-10 w-10 shrink-0 items-center
-                  justify-center rounded-xl ${
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
                     isActive
-                      ? 'bg-emerald-800 text-emerald-200'
-                      : 'bg-white/5 text-slate-400'
-                  }`}>
-                  <Icon className="h-5 w-5" />
-                </div>
+                      ? 'bg-[#d7b76c]/15 text-[#e8cd8b]'
+                      : 'bg-white/[0.05] text-emerald-100/65 group-hover:text-[#e8cd8b]'
+                  }`}
+                >
+                  <Icon className="h-5 w-5" strokeWidth={1.8} />
+                </span>
 
-                <span className={`text-sm ${
-                  isActive ? 'font-semibold' : 'font-medium'
+                <span className={`min-w-0 flex-1 text-sm ${
+                  isActive ? 'font-bold' : 'font-medium'
                 }`}>
                   {item.label}
                 </span>
+
+                {isActive && (
+                  <ChevronRight className="h-4 w-4 shrink-0 text-[#e8cd8b]" />
+                )}
               </button>
             );
           })}
         </nav>
 
-        {/* Sign Out */}
-        <div className="border-t border-emerald-900/60 p-4">
+        {/* Property footer */}
+        <div className="mx-4 mb-4 rounded-xl border border-white/10 bg-black/10 p-3">
+          <div className="flex items-center gap-2.5">
+            <Building2 className="h-4 w-4 shrink-0 text-[#e8cd8b]" />
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold text-white">
+                {propertyInfo?.name || 'SR PG Living'}
+              </p>
+              <p className="mt-0.5 text-[10px] text-emerald-100/55">
+                Property workspace
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Sign out */}
+        <div className="border-t border-white/10 p-4">
           <button
             type="button"
             onClick={() => {
               onClose();
               onSignOut();
             }}
-            className="flex w-full items-center gap-3 rounded-xl
-              px-3 py-3.5 text-sm font-medium text-slate-400
-              transition-colors hover:bg-rose-950/50 hover:text-rose-300
-              focus-visible:outline-none focus-visible:ring-2
-              focus-visible:ring-rose-400"
+            className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-emerald-100/70 transition-colors hover:bg-rose-500/10 hover:text-rose-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
           >
-            <span className="flex h-10 w-10 items-center justify-center
-              rounded-xl bg-white/5">
-              <LogOut className="h-5 w-5" />
-            </span>
+            <LogOut className="h-5 w-5 shrink-0" />
             <span>Sign Out</span>
           </button>
+
+          <p className="mt-3 text-center text-[10px] tracking-wide text-emerald-100/35">
+            SR PG Living · Property Suite
+          </p>
         </div>
-      </div>
+      </aside>
     </div>
   );
 };

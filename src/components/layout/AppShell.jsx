@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { MobileHeader } from './MobileHeader';
@@ -13,38 +14,41 @@ export const AppShell = ({
 }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  const handleSelectTab = (tab) => {
+    onSelectTab(tab);
+    setIsDrawerOpen(false);
+  };
+
   return (
-    <div className="min-h-screen w-full flex bg-slate-50 text-slate-800 antialiased font-sans">
-      {/* 1. Desktop Persistent Fixed-Width Sidebar (256px) */}
+    <div className="flex min-h-screen w-full bg-[#f7f5ef] font-sans text-slate-800 antialiased">
+      {/* Desktop sidebar */}
       <Sidebar
         currentTab={currentTab}
-        onSelectTab={onSelectTab}
+        onSelectTab={handleSelectTab}
         onResetData={onResetData}
         onSignOut={onSignOut}
         propertyInfo={propertyInfo}
       />
 
-      {/* 2. Mobile Hamburger Drawer */}
+      {/* Mobile navigation drawer */}
       <MobileDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         currentTab={currentTab}
-        onSelectTab={onSelectTab}
+        onSelectTab={handleSelectTab}
         onResetData={onResetData}
         onSignOut={onSignOut}
         propertyInfo={propertyInfo}
       />
 
-      {/* 3. Main Content Container */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
-        {/* Mobile Header with Hamburger Icon */}
+      {/* Main content */}
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden bg-[#f7f5ef]">
         <MobileHeader
           onOpenDrawer={() => setIsDrawerOpen(true)}
           propertyInfo={propertyInfo}
         />
 
-        {/* Page Content View Area */}
-        <main className="flex-1 p-3 sm:p-6 lg:p-8 w-full mx-auto">
+        <main className="mx-auto w-full max-w-[1800px] flex-1 p-3 sm:p-5 lg:p-7 xl:p-8">
           {children}
         </main>
       </div>

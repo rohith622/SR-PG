@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { formatCurrency } from '../../utils/formatters';
 import {
@@ -8,9 +9,31 @@ import {
   Users,
   IndianRupee,
   ArrowUpRight,
+  Building2,
+  Bed,
+  UserRound,
+  KeyRound,
+  FileText,
 } from 'lucide-react';
 
-// Only the status dot carries color. Everything else stays neutral.
+const TONES = {
+  green: {
+    tile: 'bg-emerald-100/80',
+    icon: 'text-emerald-800',
+    decoration: 'text-emerald-900/[0.055]',
+  },
+  gold: {
+    tile: 'bg-[#f7efd9]',
+    icon: 'text-[#a97920]',
+    decoration: 'text-[#a97920]/[0.07]',
+  },
+  red: {
+    tile: 'bg-rose-100',
+    icon: 'text-rose-600',
+    decoration: 'text-rose-900/[0.055]',
+  },
+};
+
 const DOT = {
   neutral: 'bg-stone-300',
   good: 'bg-emerald-500',
@@ -28,6 +51,8 @@ export const SummaryCards = ({ summary, onCardClick }) => {
       value: summary?.totalRooms ?? 0,
       subtext: 'Configured rooms',
       icon: DoorClosed,
+      decoration: Building2,
+      tone: 'green',
       clickable: true,
       targetTab: 'beds',
     },
@@ -37,9 +62,14 @@ export const SummaryCards = ({ summary, onCardClick }) => {
       value: summary?.totalBeds ?? 0,
       subtext: 'Across all rooms',
       status: summary?.maintenanceBeds
-        ? { label: `${summary.maintenanceBeds} in maintenance`, tone: 'warn' }
+        ? {
+            label: `${summary.maintenanceBeds} in maintenance`,
+            tone: 'warn',
+          }
         : null,
       icon: BedDouble,
+      decoration: Bed,
+      tone: 'gold',
       clickable: true,
       targetTab: 'beds',
     },
@@ -50,6 +80,8 @@ export const SummaryCards = ({ summary, onCardClick }) => {
       subtext: `${occupancyRate}% occupancy`,
       progress: occupancyRate,
       icon: UserCheck,
+      decoration: Users,
+      tone: 'green',
       clickable: true,
       targetTab: 'beds',
       filter: 'OCCUPIED',
@@ -60,7 +92,9 @@ export const SummaryCards = ({ summary, onCardClick }) => {
       value: summary?.availableBeds ?? 0,
       subtext: 'Ready for allocation',
       status: { label: 'Vacant', tone: 'good' },
-      icon: CheckCircle,
+      icon: KeyRound,
+      decoration: DoorClosed,
+      tone: 'green',
       clickable: true,
       targetTab: 'beds',
       filter: 'AVAILABLE',
@@ -71,11 +105,13 @@ export const SummaryCards = ({ summary, onCardClick }) => {
       value: summary?.activeTenants ?? 0,
       subtext: 'Currently residing',
       icon: Users,
+      decoration: Users,
+      tone: 'gold',
       clickable: false,
     },
     {
       id: 'rent',
-      title: 'Rent pending',
+      title: 'Rent Pending',
       value: formatCurrency(rentPending),
       subtext: summary?.rent?.overdueCount
         ? `${summary.rent.overdueCount} tenant(s) overdue`
@@ -85,73 +121,125 @@ export const SummaryCards = ({ summary, onCardClick }) => {
           ? { label: 'Action needed', tone: 'warn' }
           : { label: 'Settled', tone: 'good' },
       icon: IndianRupee,
+      decoration: FileText,
+      tone: 'red',
       clickable: false,
     },
   ];
 
   return (
-    <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-6">
+    <section
+      aria-label="Property summary"
+      className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 sm:gap-4"
+    >
       {cards.map((card) => {
         const Icon = card.icon;
+        const Decoration = card.decoration;
+        const tone = TONES[card.tone] || TONES.green;
 
         const content = (
           <>
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-stone-500">
-                {card.title}
-              </p>
-              <Icon
-                className="h-4 w-4 text-stone-400 transition-colors group-hover:text-emerald-700"
-                strokeWidth={1.6}
-              />
+            <div className="flex items-start gap-4">
+              <div
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${tone.tile} sm:h-[54px] sm:w-[54px]`}
+              >
+                <Icon
+                  aria-hidden="true"
+                  className={`h-6 w-6 ${tone.icon}`}
+                  strokeWidth={2.2}
+                />
+              </div>
+
+              <div className="min-w-0 flex-1 pt-1">
+                <p className="text-[11px] font-bold uppercase tracking-[0.09em] text-slate-500 sm:text-xs">
+                  {card.title}
+                </p>
+
+                <p className="mt-2 break-words text-[28px] font-extrabold leading-none tracking-tight text-slate-950 tabular-nums sm:text-[32px]">
+                  {card.value}
+                </p>
+              </div>
             </div>
 
-            {/* Value */}
-            <p className="mt-6 break-words text-[30px] font-semibold leading-none tracking-tight text-stone-900 tabular-nums">
-              {card.value}
-            </p>
-
-            {/* Optional occupancy bar */}
             {typeof card.progress === 'number' && (
-              <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-stone-100">
-                <div
-                  className="h-full rounded-full bg-emerald-700 transition-all duration-500"
-                  style={{ width: `${Math.min(100, Math.max(0, card.progress))}%` }}
-                />
+              <div className="mt-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="h-2 flex-1 overflow-hidden rounded-full bg-slate-200"
+                    role="progressbar"
+                    aria-label="Bed occupancy"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.min(
+                      100,
+                      Math.max(0, card.progress)
+                    )}
+                  >
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-800 to-emerald-500 transition-all duration-500"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          Math.max(0, card.progress)
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-slate-700">
+                    {card.progress}%
+                  </span>
+                </div>
               </div>
             )}
 
-            {/* Footer */}
-            <div className={`flex flex-col gap-1.5 ${typeof card.progress === 'number' ? 'mt-3' : 'mt-5'}`}>
-              <p className="pr-5 text-xs leading-snug text-stone-500">{card.subtext}</p>
+            <div
+              className={`relative z-10 mt-3 flex flex-col gap-2 ${
+                typeof card.progress === 'number' ? '' : 'sm:mt-4'
+              }`}
+            >
+              <p className="text-xs leading-relaxed text-slate-500 sm:text-[13px]">
+                {card.subtext}
+              </p>
 
               {card.status && (
-                <span className="flex items-center gap-1.5 text-[11px] font-medium leading-snug text-stone-600">
-                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${DOT[card.status.tone] || DOT.neutral}`} />
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-600">
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${
+                      DOT[card.status.tone] || DOT.neutral
+                    }`}
+                  />
                   {card.status.label}
                 </span>
               )}
             </div>
 
+            <Decoration
+              aria-hidden="true"
+              className={`pointer-events-none absolute bottom-3 right-3 h-14 w-14 ${tone.decoration} sm:bottom-4 sm:right-4 sm:h-[72px] sm:w-[72px]`}
+              strokeWidth={2.5}
+            />
+
             {card.clickable && (
-              <ArrowUpRight className="absolute bottom-5 right-5 h-3.5 w-3.5 text-stone-400 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100" />
+              <ArrowUpRight
+                aria-hidden="true"
+                className="absolute right-4 top-4 h-4 w-4 text-emerald-800 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100"
+              />
             )}
           </>
         );
 
         const base =
-          'group relative flex min-h-[150px] flex-col rounded-lg border border-stone-200/80 bg-white p-5 transition-all duration-200';
+          'group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#eae5d9] bg-gradient-to-br from-white via-white to-[#fdfbf6] p-4 text-left shadow-sm shadow-[#6d5730]/[0.04] transition-all duration-200 sm:min-h-[176px] sm:p-5';
 
         const interactive =
-          'cursor-pointer hover:border-stone-300 hover:shadow-[0_10px_30px_-14px_rgba(28,25,23,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2';
+          'cursor-pointer hover:-translate-y-0.5 hover:border-emerald-800/30 hover:shadow-lg hover:shadow-emerald-950/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2';
 
         return card.clickable ? (
           <button
             key={card.id}
             type="button"
             onClick={() => onCardClick?.(card)}
-            className={`${base} ${interactive} w-full text-left`}
+            className={`${base} ${interactive} w-full`}
             aria-label={`${card.title}: ${card.value}. View ${card.title.toLowerCase()}`}
           >
             {content}
@@ -162,7 +250,7 @@ export const SummaryCards = ({ summary, onCardClick }) => {
           </div>
         );
       })}
-    </div>
+    </section>
   );
 };
 

@@ -219,7 +219,7 @@ function Avatar({ name, index }) {
 
 function StatusBadge({ checkedOut }) {
   return checkedOut ? (
-    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-600 sm:text-xs">
+    <span className="inline-flex items-center rounded-full bg-[#f1eee5] px-2.5 py-1 text-[10px] font-semibold text-slate-600 sm:text-xs">
       Checked Out
     </span>
   ) : (
@@ -234,12 +234,12 @@ function SummaryCard({ title, value, icon: Icon, theme, subtitle }) {
   const themes = {
     emerald: 'bg-emerald-50 text-emerald-700',
     blue: 'bg-blue-50 text-blue-700',
-    slate: 'bg-slate-100 text-slate-700',
+    slate: 'bg-[#f1eee5] text-slate-700',
     orange: 'bg-orange-50 text-orange-700',
   };
 
   return (
-    <div className="flex min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 sm:p-4">
+    <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-[#e9e2d5] bg-white p-3 shadow-sm shadow-[#6d5730]/[0.04] sm:p-4">
       <div
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg sm:h-11 sm:w-11 ${
           themes[theme]
@@ -304,7 +304,7 @@ function TenantDetailsModal({ tenant, onClose }) {
         </div>
 
         <div className="mt-5 space-y-3">
-          <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-3">
+          <div className="flex items-center gap-3 rounded-lg bg-[#faf8f2] p-3">
             <Phone size={17} className="text-emerald-800" />
             <div>
               <p className="text-[10px] text-slate-500">Mobile number</p>
@@ -317,7 +317,7 @@ function TenantDetailsModal({ tenant, onClose }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-3">
+          <div className="flex items-center gap-3 rounded-lg bg-[#faf8f2] p-3">
             <Building2 size={17} className="text-emerald-800" />
             <div>
               <p className="text-[10px] text-slate-500">Room and bed</p>
@@ -328,7 +328,7 @@ function TenantDetailsModal({ tenant, onClose }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-3">
+          <div className="flex items-center gap-3 rounded-lg bg-[#faf8f2] p-3">
             <CalendarDays size={17} className="text-emerald-800" />
             <div>
               <p className="text-[10px] text-slate-500">Stay period</p>
@@ -357,7 +357,7 @@ function TenantDetailsModal({ tenant, onClose }) {
         <button
           type="button"
           onClick={onClose}
-          className="mt-5 w-full rounded-lg bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white"
+          className="mt-5 w-full rounded-lg bg-[#174b38] px-4 py-2.5 text-sm font-semibold text-white"
         >
           Close Details
         </button>
@@ -529,9 +529,9 @@ export function TenantHistoryPage() {
   };
 
   return (
-    <div className="min-h-full min-w-0 bg-[#F5F7F6] text-slate-900">
+    <div className="min-h-full min-w-0 bg-[#f7f5ef] text-slate-900">
       {/* Page header */}
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-[#e9e2d5] bg-white">
         <div className="flex flex-col gap-3 px-4 py-4 sm:px-6 sm:py-5 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div>
             <div className="flex items-center gap-1.5 text-[10px] text-slate-400 sm:text-xs">
@@ -542,7 +542,7 @@ export function TenantHistoryPage() {
               </span>
             </div>
 
-            <h1 className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+            <h1 className="mt-2 text-xl font-extrabold tracking-tight text-slate-950 sm:text-2xl">
               Tenant History
             </h1>
 
@@ -554,7 +554,7 @@ export function TenantHistoryPage() {
           <button
             type="button"
             onClick={exportCSV}
-            className="inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-900 sm:w-auto sm:text-sm"
+            className="inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-md border border-[#e9e2d5] bg-white px-3 py-2 text-xs font-semibold text-[#174b38] sm:w-auto sm:text-sm"
           >
             <Download size={15} />
             Export CSV
@@ -564,7 +564,7 @@ export function TenantHistoryPage() {
 
       <main className="mx-auto max-w-[1800px] space-y-4 p-3 sm:space-y-5 sm:p-5 lg:p-8">
         {/* Search and filters */}
-        <section className="rounded-lg border border-slate-200 bg-white p-3 sm:p-4">
+        <section className="rounded-2xl border border-[#e9e2d5] bg-white p-3 shadow-sm shadow-[#6d5730]/[0.04] sm:p-4">
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.5fr)_minmax(130px,0.7fr)_minmax(130px,0.7fr)_minmax(150px,0.8fr)_auto]">
             <div className="relative min-w-0">
               <Search
@@ -579,7 +579,7 @@ export function TenantHistoryPage() {
                 }}
                 placeholder="Search name, phone, room or bed..."
                 aria-label="Search tenant history"
-                className="h-10 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-xs outline-none focus:border-emerald-600 sm:text-sm"
+                className="h-10 w-full rounded-md border border-[#e9e2d5] bg-white pl-9 pr-3 text-xs outline-none focus:border-[#174b38] sm:text-sm"
               />
             </div>
 
@@ -591,7 +591,7 @@ export function TenantHistoryPage() {
                   setCurrentPage(1);
                 }}
                 aria-label="Filter by floor"
-                className="h-10 w-full appearance-none rounded-md border border-slate-200 bg-white px-3 pr-8 text-xs outline-none focus:border-emerald-600 sm:text-sm"
+                className="h-10 w-full appearance-none rounded-md border border-[#e9e2d5] bg-white px-3 pr-8 text-xs outline-none focus:border-[#174b38] sm:text-sm"
               >
                 <option value="all">All Floors</option>
                 {floors.map((floor) => (
@@ -614,7 +614,7 @@ export function TenantHistoryPage() {
                   setCurrentPage(1);
                 }}
                 aria-label="Filter by tenant status"
-                className="h-10 w-full appearance-none rounded-md border border-slate-200 bg-white px-3 pr-8 text-xs outline-none focus:border-emerald-600 sm:text-sm"
+                className="h-10 w-full appearance-none rounded-md border border-[#e9e2d5] bg-white px-3 pr-8 text-xs outline-none focus:border-[#174b38] sm:text-sm"
               >
                 <option value="all">All Status</option>
                 <option value="current">Currently Staying</option>
@@ -634,7 +634,7 @@ export function TenantHistoryPage() {
                   setCurrentPage(1);
                 }}
                 aria-label="Filter by check-in date"
-                className="h-10 w-full appearance-none rounded-md border border-slate-200 bg-white px-3 pr-8 text-xs outline-none focus:border-emerald-600 sm:text-sm"
+                className="h-10 w-full appearance-none rounded-md border border-[#e9e2d5] bg-white px-3 pr-8 text-xs outline-none focus:border-[#174b38] sm:text-sm"
               >
                 <option value="all">Any Check-in Date</option>
                 <option value="30days">Last 30 Days</option>
@@ -650,7 +650,7 @@ export function TenantHistoryPage() {
             <button
               type="button"
               onClick={resetFilters}
-              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md bg-emerald-900 px-4 text-xs font-semibold text-white sm:text-sm"
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md bg-[#174b38] px-4 text-xs font-semibold text-white sm:text-sm"
             >
               <RotateCcw size={14} />
               Reset
@@ -694,10 +694,10 @@ export function TenantHistoryPage() {
         </section>
 
         {/* Tenant records */}
-        <section className="min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
-          <div className="flex flex-col gap-3 border-b border-slate-100 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+        <section className="min-w-0 overflow-hidden rounded-2xl border border-[#e9e2d5] bg-white shadow-sm shadow-[#6d5730]/[0.04]">
+          <div className="flex flex-col gap-3 border-b border-[#eee8dc] p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
             <div>
-              <h2 className="text-sm font-bold text-slate-900 sm:text-base">
+              <h2 className="text-sm font-extrabold text-slate-950 sm:text-base">
                 Tenant Records
               </h2>
               <p className="mt-1 text-[10px] text-slate-500 sm:text-xs">
@@ -720,7 +720,7 @@ export function TenantHistoryPage() {
                   setSortOrder(event.target.value);
                   setCurrentPage(1);
                 }}
-                className="h-9 min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2 text-[11px] outline-none sm:flex-none sm:text-xs"
+                className="h-9 min-w-0 flex-1 rounded-md border border-[#e9e2d5] bg-white px-2 text-[11px] outline-none sm:flex-none sm:text-xs"
               >
                 <option value="latest">Latest First</option>
                 <option value="oldest">Oldest First</option>
@@ -732,7 +732,7 @@ export function TenantHistoryPage() {
           {/* Desktop table */}
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[1050px] text-left">
-              <thead className="bg-slate-50">
+              <thead className="bg-[#faf8f2]">
                 <tr className="text-[11px] font-semibold text-slate-600">
                   <th className="px-4 py-3">#</th>
                   <th className="px-4 py-3">Tenant Name</th>
@@ -747,7 +747,7 @@ export function TenantHistoryPage() {
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#eee8dc]">
                 {pageTenants.map((tenant, index) => (
                   <tr
                     key={tenant.id}
@@ -815,7 +815,7 @@ export function TenantHistoryPage() {
                       </button>
 
                       {openMenuId === tenant.id && (
-                        <div className="absolute right-8 top-12 z-20 w-40 rounded-lg border border-slate-200 bg-white p-1.5 text-left shadow-lg">
+                        <div className="absolute right-8 top-12 z-20 w-40 rounded-lg border border-[#e9e2d5] bg-white p-1.5 text-left shadow-lg">
                           <button
                             type="button"
                             onClick={() => {
@@ -873,7 +873,7 @@ export function TenantHistoryPage() {
                   </div>
                 </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-3 border-t border-slate-100 pt-3">
+                <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-3 border-t border-[#eee8dc] pt-3">
                   <div>
                     <p className="text-[10px] text-slate-400">Room / Bed</p>
                     <p className="mt-0.5 text-xs font-semibold text-slate-700">
@@ -906,7 +906,7 @@ export function TenantHistoryPage() {
                   </div>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5">
+                <div className="mt-3 flex items-center justify-between border-t border-[#eee8dc] pt-2.5">
                   <span className="text-[10px] text-slate-500">
                     Rent: ₹{tenant.rent.toLocaleString('en-IN')}/month
                   </span>
@@ -914,7 +914,7 @@ export function TenantHistoryPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedTenant(tenant)}
-                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 text-[10px] font-semibold text-emerald-900"
+                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 text-[10px] font-semibold text-[#174b38]"
                   >
                     <Eye size={12} />
                     View Details
@@ -945,7 +945,7 @@ export function TenantHistoryPage() {
           )}
 
           {/* Pagination */}
-          <div className="flex flex-col gap-3 border-t border-slate-100 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+          <div className="flex flex-col gap-3 border-t border-[#eee8dc] px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
             <p className="text-[10px] text-slate-500 sm:text-xs">
               {filteredTenants.length === 0
                 ? 'Showing 0 records'
@@ -988,8 +988,8 @@ export function TenantHistoryPage() {
                       aria-current={safePage === page ? 'page' : undefined}
                       className={`h-8 min-w-8 rounded-md border px-2 text-xs font-medium ${
                         safePage === page
-                          ? 'border-emerald-900 bg-emerald-900 text-white'
-                          : 'border-slate-200 bg-white text-slate-600'
+                          ? 'border-emerald-900 bg-[#174b38] text-white'
+                          : 'border-[#e9e2d5] bg-white text-slate-600'
                       }`}
                     >
                       {page}
