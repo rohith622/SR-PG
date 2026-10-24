@@ -1,66 +1,78 @@
-
-import React, { useState } from 'react';
-import './PublicWebsite.css';
-
+import React, { useState } from "react";
 // SR-PG owner contact and property details.
-const OWNER_WHATSAPP = '916309595559';
+const OWNER_WHATSAPP = "916309595559";
 
 const pgDetails = {
-  name: 'SR-PG',
-  owner: 'Sridhar',
-  address: 'Honey Heights backside building, opposite HCL, near the airport',
-  city: 'Gannavaram',
-  accommodationFor: 'Men and Women',
-  roomTypes: 'Single and Sharing Rooms',
+  name: "SR-PG",
+  owner: "Sridhar",
+  address: "Honey Heights backside building, opposite HCL, near the airport",
+  city: "Gannavaram",
+  accommodationFor: "Men and Women",
+  roomTypes: "Single and Sharing Rooms",
 };
 
 const rooms = [
   {
     id: 1,
-    name: 'Single Sharing',
-    type: 'Private room',
+    name: "Single Sharing",
+    type: "Private room",
     rent: 12000,
     available: true,
-    image: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=900&q=85',
-    features: ['Private space', 'Wi-Fi', 'Wardrobe', 'Attached bathroom'],
+    image:
+      "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=900&q=85",
+    features: ["Private space", "Wi-Fi", "Wardrobe", "Attached bathroom"],
   },
   {
     id: 2,
-    name: 'Double Sharing',
-    type: 'Shared room',
+    name: "Double Sharing",
+    type: "Shared room",
     rent: 8000,
     available: true,
-    image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=900&q=85',
-    features: ['Two beds', 'Wi-Fi', 'Wardrobe', 'Housekeeping'],
+    image:
+      "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=900&q=85",
+    features: ["Two beds", "Wi-Fi", "Wardrobe", "Housekeeping"],
   },
   {
     id: 3,
-    name: 'Triple Sharing',
-    type: 'Shared room',
+    name: "Triple Sharing",
+    type: "Shared room",
     rent: 6000,
     available: false,
-    image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=900&q=85',
-    features: ['Three beds', 'Wi-Fi', 'Storage', 'Common lounge'],
+    image:
+      "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=900&q=85",
+    features: ["Three beds", "Wi-Fi", "Storage", "Common lounge"],
   },
 ];
 
 const facilities = [
-  ['wifi', 'Wi-Fi', 'Stay connected for work, study, and entertainment.'],
-  ['utensils', 'Food & Meals', 'Meal facilities for convenient everyday living.'],
-  ['washing-machine', 'Washing Machine', 'Laundry facilities for your daily needs.'],
-  ['sparkles', 'Housekeeping', 'Housekeeping support to help keep spaces clean.'],
-  ['thermometer', 'Hot Water', 'Hot water for your daily bathing needs.'],
-  ['droplet', 'RO Drinking Water', 'RO drinking water for everyday use.'],
-  ['zap', 'Power Backup', 'Power backup during electricity interruptions.'],
-  ['shield', 'CCTV Security', 'CCTV surveillance for added security.'],
-  ['car', 'Parking', 'Parking facility for residents.'],
-  ['bath', 'Attached Bathrooms', 'Rooms with attached bathroom facilities.'],
+  ["wifi", "Wi-Fi", "Stay connected for work, study, and entertainment."],
+  [
+    "utensils",
+    "Food & Meals",
+    "Meal facilities for convenient everyday living.",
+  ],
+  [
+    "washing-machine",
+    "Washing Machine",
+    "Laundry facilities for your daily needs.",
+  ],
+  [
+    "sparkles",
+    "Housekeeping",
+    "Housekeeping support to help keep spaces clean.",
+  ],
+  ["thermometer", "Hot Water", "Hot water for your daily bathing needs."],
+  ["droplet", "RO Drinking Water", "RO drinking water for everyday use."],
+  ["zap", "Power Backup", "Power backup during electricity interruptions."],
+  ["shield", "CCTV Security", "CCTV surveillance for added security."],
+  ["car", "Parking", "Parking facility for residents."],
+  ["bath", "Attached Bathrooms", "Rooms with attached bathroom facilities."],
 ];
 
 const money = (value) =>
-  new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
     maximumFractionDigits: 0,
   }).format(value);
 
@@ -110,16 +122,66 @@ function Icon({ name, size = 20 }) {
     ),
     menu: <path d="M4 6h16M4 12h16M4 18h16" />,
     close: <path d="m18 6-12 12M6 6l12 12" />,
-    wifi: <><path d="M5 12.55a11 11 0 0 1 14.08 0" /><path d="M8.5 16.1a5.5 5.5 0 0 1 7 0" /><path d="M12 20h.01" /><path d="M2 9a16 16 0 0 1 20 0" /></>,
-    utensils: <><path d="M3 2v7a4 4 0 0 0 4 4V2" /><path d="M7 2v20" /><path d="M17 2v20" /><path d="M17 2c3 3 4 7 0 10" /></>,
-    'washing-machine': <><rect x="4" y="2" width="16" height="20" rx="2" /><circle cx="12" cy="13" r="5" /><path d="M8 5h.01M12 5h.01M16 5h.01" /></>,
-    sparkles: <><path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z" /><path d="m19 14 1.2 2.8L23 18l-2.8 1.2L19 22l-1.2-2.8L15 18l2.8-1.2L19 14Z" /></>,
-    thermometer: <><path d="M14 14.76V5a3 3 0 0 0-6 0v9.76a5 5 0 1 0 6 0Z" /><path d="M11 11v7" /></>,
+    wifi: (
+      <>
+        <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+        <path d="M8.5 16.1a5.5 5.5 0 0 1 7 0" />
+        <path d="M12 20h.01" />
+        <path d="M2 9a16 16 0 0 1 20 0" />
+      </>
+    ),
+    utensils: (
+      <>
+        <path d="M3 2v7a4 4 0 0 0 4 4V2" />
+        <path d="M7 2v20" />
+        <path d="M17 2v20" />
+        <path d="M17 2c3 3 4 7 0 10" />
+      </>
+    ),
+    "washing-machine": (
+      <>
+        <rect x="4" y="2" width="16" height="20" rx="2" />
+        <circle cx="12" cy="13" r="5" />
+        <path d="M8 5h.01M12 5h.01M16 5h.01" />
+      </>
+    ),
+    sparkles: (
+      <>
+        <path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3Z" />
+        <path d="m19 14 1.2 2.8L23 18l-2.8 1.2L19 22l-1.2-2.8L15 18l2.8-1.2L19 14Z" />
+      </>
+    ),
+    thermometer: (
+      <>
+        <path d="M14 14.76V5a3 3 0 0 0-6 0v9.76a5 5 0 1 0 6 0Z" />
+        <path d="M11 11v7" />
+      </>
+    ),
     droplet: <path d="M12 2.5S5 10 5 14a7 7 0 0 0 14 0c0-4-7-11.5-7-11.5Z" />,
     zap: <path d="m13 2-3 8H5l6 12 3-8h5L13 2Z" />,
-    shield: <><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z" /><path d="m9 12 2 2 4-4" /></>,
-    car: <><path d="m5 17-1 3" /><path d="m19 17 1 3" /><path d="M5 17h14l-1-6H6l-1 6Z" /><path d="m6 11 2-5h8l2 5" /><circle cx="7.5" cy="16" r="1" /><circle cx="16.5" cy="16" r="1" /></>,
-    bath: <><path d="M9 6V4a2 2 0 0 1 4 0v2" /><path d="M3 12h18v3a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5v-3Z" /><path d="M6 20v2M18 20v2" /></>,
+    shield: (
+      <>
+        <path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z" />
+        <path d="m9 12 2 2 4-4" />
+      </>
+    ),
+    car: (
+      <>
+        <path d="m5 17-1 3" />
+        <path d="m19 17 1 3" />
+        <path d="M5 17h14l-1-6H6l-1 6Z" />
+        <path d="m6 11 2-5h8l2 5" />
+        <circle cx="7.5" cy="16" r="1" />
+        <circle cx="16.5" cy="16" r="1" />
+      </>
+    ),
+    bath: (
+      <>
+        <path d="M9 6V4a2 2 0 0 1 4 0v2" />
+        <path d="M3 12h18v3a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5v-3Z" />
+        <path d="M6 20v2M18 20v2" />
+      </>
+    ),
   };
 
   return (
@@ -140,70 +202,72 @@ function Icon({ name, size = 20 }) {
 }
 
 export default function PublicWebsite() {
-  const [page, setPage] = useState('home');
+  const [page, setPage] = useState("home");
   const [selectedRoom, setSelectedRoom] = useState(rooms[0]);
-  const [sharing, setSharing] = useState('All rooms');
+  const [sharing, setSharing] = useState("All rooms");
   const [mobileMenu, setMobileMenu] = useState(false);
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState("");
 
   const [enquiry, setEnquiry] = useState({
-    name: '',
-    phone: '',
-    room: '',
-    moveIn: '',
-    message: '',
+    name: "",
+    phone: "",
+    room: "",
+    moveIn: "",
+    message: "",
   });
 
   const go = (nextPage) => {
     setPage(nextPage);
     setMobileMenu(false);
-    setNotice('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setNotice("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const showRoom = (room) => {
     setSelectedRoom(room);
     setEnquiry((old) => ({ ...old, room: room.name }));
-    go('details');
+    go("details");
   };
 
   const visibleRooms = rooms.filter(
     (room) =>
-      sharing === 'All rooms' ||
-      (sharing === 'Available only' && room.available) ||
-      room.name === sharing
+      sharing === "All rooms" ||
+      (sharing === "Available only" && room.available) ||
+      room.name === sharing,
   );
 
   const submitEnquiry = (event) => {
     event.preventDefault();
 
     if (!/^[1-9]\d{7,14}$/.test(OWNER_WHATSAPP)) {
-      setNotice('The SR-PG WhatsApp number is not configured correctly. Please contact the owner directly.');
+      setNotice(
+        "The SR-PG WhatsApp number is not configured correctly. Please contact the owner directly.",
+      );
       return;
     }
 
     const message = [
       `🏠 *New Room Enquiry — ${pgDetails.name}*`,
-      '',
+      "",
       `👤 Name: ${enquiry.name.trim()}`,
       `📞 Customer phone: ${enquiry.phone.trim()}`,
-      `🛏️ Preferred room: ${enquiry.room || 'Not specified'}`,
-      `📅 Move-in date: ${enquiry.moveIn || 'Not specified'}`,
-      `💬 Message: ${enquiry.message.trim() || 'No additional message'}`,
-      '',
+      `🛏️ Preferred room: ${enquiry.room || "Not specified"}`,
+      `📅 Move-in date: ${enquiry.moveIn || "Not specified"}`,
+      `💬 Message: ${enquiry.message.trim() || "No additional message"}`,
+      "",
       `PG location: ${pgDetails.address}, ${pgDetails.city}`,
-    ].join('\n');
+    ].join("\n");
 
     const whatsappUrl = `https://wa.me/${OWNER_WHATSAPP}?text=${encodeURIComponent(message)}`;
     window.location.href = whatsappUrl;
   };
 
   const navItems = [
-    ['home', 'Home'],
-    ['rooms', 'Rooms'],
-    ['facilities', 'Facilities'],
-    ['gallery', 'Gallery'],
-    ['contact', 'Contact'],
+    ["home", "Home"],
+    ["rooms", "Rooms"],
+    ["facilities", "Facilities"],
+    ["gallery", "Gallery"],
+    ["contact", "Contact"],
   ];
 
   return (
@@ -215,14 +279,16 @@ export default function PublicWebsite() {
       <header className="srpg-header">
         <button
           className="srpg-brand"
-          onClick={() => go('home')}
+          onClick={() => go("home")}
           aria-label="SR-PG home"
         >
           <span className="srpg-brand-icon">
             <Icon name="home" size={25} />
           </span>
           <span>
-            <strong>SR<span>-</span>PG</strong>
+            <strong>
+              SR<span>-</span>PG
+            </strong>
             <small>YOUR SPACE. YOUR COMFORT.</small>
           </span>
         </button>
@@ -233,30 +299,27 @@ export default function PublicWebsite() {
           aria-label="Toggle navigation"
           aria-expanded={mobileMenu}
         >
-          <Icon name={mobileMenu ? 'close' : 'menu'} />
+          <Icon name={mobileMenu ? "close" : "menu"} />
         </button>
 
-        <nav className={`srpg-nav ${mobileMenu ? 'is-open' : ''}`}>
+        <nav className={`srpg-nav ${mobileMenu ? "is-open" : ""}`}>
           {navItems.map(([id, label]) => (
             <button
               key={id}
-              className={page === id ? 'active' : ''}
+              className={page === id ? "active" : ""}
               onClick={() => go(id)}
             >
               {label}
             </button>
           ))}
-          <button
-            className="srpg-nav-cta"
-            onClick={() => go('contact')}
-          >
+          <button className="srpg-nav-cta" onClick={() => go("contact")}>
             Enquire now
           </button>
         </nav>
       </header>
 
       <main>
-        {page === 'home' && (
+        {page === "home" && (
           <>
             <section className="srpg-hero">
               <div className="srpg-hero-copy">
@@ -272,23 +335,24 @@ export default function PublicWebsite() {
                 </p>
 
                 <div className="srpg-hero-actions">
-                  <button
-                    className="srpg-primary"
-                    onClick={() => go('rooms')}
-                  >
+                  <button className="srpg-primary" onClick={() => go("rooms")}>
                     Explore rooms <Icon name="arrow" size={18} />
                   </button>
                   <button
                     className="srpg-text-button"
-                    onClick={() => go('contact')}
+                    onClick={() => go("contact")}
                   >
                     Get in touch
                   </button>
                 </div>
 
                 <div className="srpg-trust-line">
-                  <span><Icon name="check" size={16} /> Comfortable rooms</span>
-                  <span><Icon name="check" size={16} /> Essential amenities</span>
+                  <span>
+                    <Icon name="check" size={16} /> Comfortable rooms
+                  </span>
+                  <span>
+                    <Icon name="check" size={16} /> Essential amenities
+                  </span>
                 </div>
               </div>
 
@@ -315,10 +379,7 @@ export default function PublicWebsite() {
                   <span className="srpg-eyebrow">FIND YOUR SPACE</span>
                   <h2>Rooms for your lifestyle</h2>
                 </div>
-                <button
-                  className="srpg-link"
-                  onClick={() => go('rooms')}
-                >
+                <button className="srpg-link" onClick={() => go("rooms")}>
                   View all rooms <Icon name="arrow" size={17} />
                 </button>
               </div>
@@ -328,17 +389,23 @@ export default function PublicWebsite() {
 
             <section className="srpg-benefits">
               <div>
-                <span className="srpg-benefit-icon"><Icon name="home" /></span>
+                <span className="srpg-benefit-icon">
+                  <Icon name="home" />
+                </span>
                 <strong>Comfortable spaces</strong>
                 <p>Designed for a relaxed daily routine.</p>
               </div>
               <div>
-                <span className="srpg-benefit-icon"><Icon name="grid" /></span>
+                <span className="srpg-benefit-icon">
+                  <Icon name="grid" />
+                </span>
                 <strong>Essential facilities</strong>
                 <p>Everyday conveniences in one place.</p>
               </div>
               <div>
-                <span className="srpg-benefit-icon"><Icon name="phone" /></span>
+                <span className="srpg-benefit-icon">
+                  <Icon name="phone" />
+                </span>
                 <strong>Easy enquiries</strong>
                 <p>Speak with us about your preferred room.</p>
               </div>
@@ -346,7 +413,7 @@ export default function PublicWebsite() {
           </>
         )}
 
-        {page === 'rooms' && (
+        {page === "rooms" && (
           <section className="srpg-section srpg-page-section">
             <PageHeading
               eyebrow="ROOM OPTIONS"
@@ -373,9 +440,9 @@ export default function PublicWebsite() {
           </section>
         )}
 
-        {page === 'details' && (
+        {page === "details" && (
           <section className="srpg-section srpg-page-section">
-            <button className="srpg-back" onClick={() => go('rooms')}>
+            <button className="srpg-back" onClick={() => go("rooms")}>
               ← Back to rooms
             </button>
 
@@ -410,12 +477,12 @@ export default function PublicWebsite() {
 
                 <span
                   className={`srpg-availability ${
-                    selectedRoom.available ? 'available' : 'unavailable'
+                    selectedRoom.available ? "available" : "unavailable"
                   }`}
                 >
                   {selectedRoom.available
-                    ? '● Available for enquiry'
-                    : '● Currently unavailable'}
+                    ? "● Available for enquiry"
+                    : "● Currently unavailable"}
                 </span>
 
                 <h3>Room facilities</h3>
@@ -435,22 +502,22 @@ export default function PublicWebsite() {
                       ...old,
                       room: selectedRoom.name,
                     }));
-                    go('contact');
+                    go("contact");
                   }}
                 >
                   Enquire about this room <Icon name="arrow" size={18} />
                 </button>
 
                 <p className="srpg-small-note">
-                  Rent and availability are sample values until confirmed
-                  by the owner.
+                  Rent and availability are sample values until confirmed by the
+                  owner.
                 </p>
               </div>
             </div>
           </section>
         )}
 
-        {page === 'facilities' && (
+        {page === "facilities" && (
           <section className="srpg-section srpg-page-section">
             <PageHeading
               eyebrow="THE SR-PG EXPERIENCE"
@@ -475,17 +542,14 @@ export default function PublicWebsite() {
                 <h2>Looking for a room?</h2>
                 <p>Tell us what you need and enquire about availability.</p>
               </div>
-              <button
-                className="srpg-primary"
-                onClick={() => go('rooms')}
-              >
+              <button className="srpg-primary" onClick={() => go("rooms")}>
                 Explore rooms <Icon name="arrow" size={18} />
               </button>
             </div>
           </section>
         )}
 
-        {page === 'gallery' && (
+        {page === "gallery" && (
           <section className="srpg-section srpg-page-section">
             <PageHeading
               eyebrow="TAKE A LOOK AROUND"
@@ -516,7 +580,7 @@ export default function PublicWebsite() {
           </section>
         )}
 
-        {page === 'contact' && (
+        {page === "contact" && (
           <section className="srpg-section srpg-page-section">
             <PageHeading
               eyebrow="LET'S CONNECT"
@@ -529,8 +593,8 @@ export default function PublicWebsite() {
                 <span className="srpg-eyebrow">CONTACT SR-PG</span>
                 <h2>We’re here to help.</h2>
                 <p>
-                  Share your requirements and ask about room availability,
-                  rent, or facilities.
+                  Share your requirements and ask about room availability, rent,
+                  or facilities.
                 </p>
 
                 <div className="srpg-contact-item">
@@ -544,14 +608,18 @@ export default function PublicWebsite() {
                   <Icon name="location" />
                   <div>
                     <strong>Our location</strong>
-                    <small>{pgDetails.address}, {pgDetails.city}</small>
+                    <small>
+                      {pgDetails.address}, {pgDetails.city}
+                    </small>
                   </div>
                 </div>
                 <div className="srpg-contact-item">
                   <Icon name="bed" />
                   <div>
                     <strong>Accommodation</strong>
-                    <small>{pgDetails.accommodationFor} · {pgDetails.roomTypes}</small>
+                    <small>
+                      {pgDetails.accommodationFor} · {pgDetails.roomTypes}
+                    </small>
                   </div>
                 </div>
               </div>
@@ -649,15 +717,13 @@ export default function PublicWebsite() {
                   />
                 </label>
 
-                <button
-                  className="srpg-primary srpg-full"
-                  type="submit"
-                >
+                <button className="srpg-primary srpg-full" type="submit">
                   Submit enquiry <Icon name="arrow" size={18} />
                 </button>
 
                 <small className="srpg-small-note">
-                  Submitting opens WhatsApp with your enquiry pre-filled. Please press Send in WhatsApp to contact the owner.
+                  Submitting opens WhatsApp with your enquiry pre-filled. Please
+                  press Send in WhatsApp to contact the owner.
                 </small>
               </form>
             </div>
@@ -669,13 +735,15 @@ export default function PublicWebsite() {
         <div className="srpg-footer-main">
           <button
             className="srpg-brand srpg-footer-brand"
-            onClick={() => go('home')}
+            onClick={() => go("home")}
           >
             <span className="srpg-brand-icon">
               <Icon name="home" size={24} />
             </span>
             <span>
-              <strong>SR<span>-</span>PG</strong>
+              <strong>
+                SR<span>-</span>PG
+              </strong>
               <small>YOUR SPACE. YOUR COMFORT.</small>
             </span>
           </button>
@@ -685,10 +753,7 @@ export default function PublicWebsite() {
             near HCL and the airport in {pgDetails.city}.
           </p>
 
-          <button
-            className="srpg-footer-contact"
-            onClick={() => go('contact')}
-          >
+          <button className="srpg-footer-contact" onClick={() => go("contact")}>
             Have a question? Contact us <Icon name="arrow" size={16} />
           </button>
         </div>
@@ -730,17 +795,13 @@ function RoomGrid({ rooms: items, onSelect }) {
             onClick={() => onSelect(room)}
             aria-label={`View ${room.name}`}
           >
-            <img
-              src={room.image}
-              alt={room.name}
-              loading="lazy"
-            />
+            <img src={room.image} alt={room.name} loading="lazy" />
             <span
               className={`srpg-availability ${
-                room.available ? 'available' : 'unavailable'
+                room.available ? "available" : "unavailable"
               }`}
             >
-              {room.available ? 'Available' : 'Unavailable'}
+              {room.available ? "Available" : "Unavailable"}
             </span>
           </button>
 

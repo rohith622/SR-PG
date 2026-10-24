@@ -10,29 +10,41 @@ import {
   BedDouble,
   Users,
   ClipboardCheck,
-  Chrome,
-  CircleHelp,
+  Globe,
 } from "lucide-react";
-
+import { useNavigate } from "react-router-dom";
+import { authService } from "../services/authService";
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [message, setMessage] = useState("");
-
-  const handleSubmit = (event) => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    setMessage("Login authentication will be connected by your development team.");
+    setMessage("");
+    setIsLoading(true);
+
+    try {
+      await authService.login({ email: email.trim(), password });
+
+      // Remember-me currently affects the UI only.
+      // Session persistence follows your existing token strategy.
+      navigate("/admin/dashboard", { replace: true });
+    } catch (error) {
+      setMessage(error.message || "Unable to sign in. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f7f5ee] font-sans text-[#183c2d]">
       <div className="grid min-h-screen lg:grid-cols-[1.04fr_0.96fr]">
-
         {/* LEFT BRANDING PANEL */}
         <section className="relative hidden overflow-hidden bg-gradient-to-br from-[#082b1e] via-[#103c2b] to-[#071f17] px-10 py-10 text-white lg:flex lg:min-h-screen lg:flex-col lg:justify-between xl:px-16 xl:py-12">
-
           {/* Gold decorative circles */}
           <div className="pointer-events-none absolute -right-36 -top-40 h-[570px] w-[570px] rounded-full border border-[#d8b66b]/20" />
           <div className="pointer-events-none absolute -right-20 -top-24 h-[440px] w-[440px] rounded-full border border-[#d8b66b]/15" />
@@ -43,7 +55,11 @@ export default function LoginPage() {
           {/* Brand header */}
           <div className="relative z-10 flex items-center gap-3">
             <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-[#d8b66b]/70 bg-[#d8b66b]/10 shadow-lg shadow-black/10">
-              <Building2 size={29} strokeWidth={1.5} className="text-[#e8cb83]" />
+              <Building2
+                size={29}
+                strokeWidth={1.5}
+                className="text-[#e8cb83]"
+              />
             </div>
 
             <div>
@@ -89,8 +105,14 @@ export default function LoginPage() {
                   key={label}
                   className="flex min-w-0 flex-col items-center rounded-xl border border-white/10 bg-white/[0.045] px-2 py-4 text-center transition duration-300 hover:border-[#d8b66b]/40 hover:bg-white/[0.08]"
                 >
-                  <Icon size={22} strokeWidth={1.6} className="mb-3 text-[#e8cb83]" />
-                  <span className="text-[10px] font-bold text-white">{label}</span>
+                  <Icon
+                    size={22}
+                    strokeWidth={1.6}
+                    className="mb-3 text-[#e8cb83]"
+                  />
+                  <span className="text-[10px] font-bold text-white">
+                    {label}
+                  </span>
                   <span className="mt-1 text-[9px] leading-4 text-emerald-50/60">
                     {sub}
                   </span>
@@ -113,13 +135,11 @@ export default function LoginPage() {
 
         {/* RIGHT LOGIN AREA */}
         <section className="relative flex min-h-screen items-center justify-center px-4 py-7 sm:px-8 lg:px-10 xl:px-14">
-
           {/* Mobile background decoration */}
           <div className="pointer-events-none absolute -right-32 -top-32 h-72 w-72 rounded-full border border-[#d8b66b]/30 lg:hidden" />
           <div className="pointer-events-none absolute -bottom-36 -left-28 h-72 w-72 rounded-full border border-[#d8b66b]/25 lg:hidden" />
 
           <div className="relative z-10 w-full max-w-[430px]">
-
             {/* Mobile-only logo */}
             <div className="mb-7 flex items-center justify-center gap-3 lg:hidden">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#164b36] to-[#08291d] shadow-lg">
@@ -137,7 +157,6 @@ export default function LoginPage() {
 
             {/* Login card */}
             <div className="rounded-2xl border border-[#e9e2d4] bg-[#fffefa] p-5 shadow-[0_22px_65px_-28px_rgba(11,48,32,0.25)] sm:rounded-3xl sm:p-8 xl:p-10">
-
               <div className="mb-6">
                 <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border border-[#e9d9ac] bg-[#f8f0dc] text-[#174632]">
                   <LockKeyhole size={22} strokeWidth={1.7} />
@@ -157,7 +176,6 @@ export default function LoginPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-
                 {/* Email */}
                 <div>
                   <label
@@ -214,7 +232,9 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword((value) => !value)}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
                       className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-[#7d897f] transition hover:bg-[#f2f2eb] hover:text-[#174b38]"
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -237,7 +257,9 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() =>
-                      setMessage("Password recovery will be connected with the backend later.")
+                      setMessage(
+                        "Password recovery will be connected with the backend later.",
+                      )
                     }
                     className="text-[10px] font-bold text-[#96742f] transition hover:text-[#174b38]"
                   >
@@ -251,7 +273,10 @@ export default function LoginPage() {
                   className="group flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#103b29] via-[#174b36] to-[#20573b] px-4 text-xs font-bold text-white shadow-md shadow-emerald-950/15 transition duration-300 hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a85d] focus-visible:ring-offset-2 active:translate-y-0"
                 >
                   Sign In
-                  <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
+                  <ArrowRight
+                    size={15}
+                    className="transition-transform group-hover:translate-x-1"
+                  />
                 </button>
 
                 {message && (
@@ -267,7 +292,9 @@ export default function LoginPage() {
               {/* Divider */}
               <div className="my-5 flex items-center gap-3">
                 <div className="h-px flex-1 bg-[#eae8df]" />
-                <span className="text-[9px] text-[#969b91]">or continue with</span>
+                <span className="text-[9px] text-[#969b91]">
+                  or continue with
+                </span>
                 <div className="h-px flex-1 bg-[#eae8df]" />
               </div>
 
@@ -275,12 +302,14 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() =>
-                  setMessage("Google sign-in will be connected by your development team.")
+                  setMessage(
+                    "Google sign-in will be connected by your development team.",
+                  )
                 }
                 className="flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-[#e6e5dc] bg-white text-xs font-semibold text-[#35463a] transition hover:border-[#c9b16e] hover:bg-[#fbfaf5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a85d]"
               >
-                <Chrome size={17} className="text-[#4285F4]" />
-                Sign in with Google
+                <Globe size={17} className="text-[#4285F4]" /> Sign in with
+                Google
               </button>
 
               {/* Contact admin */}
@@ -289,7 +318,9 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() =>
-                    setMessage("Please contact your PG administrator for account access.")
+                    setMessage(
+                      "Please contact your PG administrator for account access.",
+                    )
                   }
                   className="font-bold text-[#174b38] underline decoration-[#d4b76c] underline-offset-4 hover:text-[#a17b2f]"
                 >
