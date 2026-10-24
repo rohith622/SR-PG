@@ -11,95 +11,87 @@ const AUTH_ENDPOINTS = {
 const TOKEN_KEY = 'sr_pg_auth_token';
 const USER_KEY = 'sr_pg_auth_user';
 
-const MOCK_USER = {
-  id: 'usr-1',
-  name: 'S. Rohith',
-  email: 'rohith@srluxurypg.in',
-  role: 'Property Owner / Admin',
-  avatar: null,
+const clearStoredSession = () => {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  localStorage.removeItem('sr_pg_auth_user');
+  sessionStorage.removeItem('sr_pg_demo_authenticated');
 };
 
-function getPayload(response) {
-  return response?.data;
-}
-
 export const authService = {
-  async login(credentials) {
-    const response = await apiClient.post(
-      AUTH_ENDPOINTS.LOGIN,
-      {
-        email: credentials.email,
-        password: credentials.password,
-      }
-    );
+  async login({ email, password }) {
+    const response = await apiClient.post(AUTH_ENDPOINTS.LOGIN, {
+      email: email.trim(),
+      password,
+    });
 
     if (response.error) {
       throw new Error(response.error);
     }
 
-    const result = getPayload(response);
+    const result = response.data;
+    const admin = result?.data?.admin;
+    const token = result?.data?.token;
 
-    // Supports common response structures:
-    // { token, admin }, { data: { token, admin } }
-    const payload = result?.data ?? result;
-    const token = payload?.token || payload?.accessToken;
-    const user = payload?.admin || payload?.user || null;
-
-    if (!token) {
+    if (result?.status !== 'success' || !token || !admin) {
       throw new Error(
-        'Login succeeded but no authentication token was returned.'
+        result?.message || 'Invalid login response from server.'
       );
     }
 
     localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(admin));
 
-    if (user) {
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
-    }
-
-    return { token, user };
+    return { admin, token };
   },
 
   async getCurrentUser() {
-    const response = await apiClient.get(
-      AUTH_ENDPOINTS.CURRENT_USER,
-      {
-        mockHandler: () => MOCK_USER,
-      }
-    );
+    const token = localStorage.getItem(TOKEN_KEY);
+
+    if (!token) {
+      const error = new Error('No authentication token found.');
+      error.status = 401;
+      throw error;
+    }
+
+    const response = await apiClient.get(AUTH_ENDPOINTS.CURRENT_USER);
 
     if (response.error) {
-      throw new Error(response.error);
+      const error = new Error(response.error);
+      error.status = response.status;
+      throw error;
     }
 
-    const result = getPayload(response);
-    const user = result?.data ?? result;
+    const result = response.data;
 
-    if (user) {
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
+    // Supports common backend response structures.
+    const admin =
+      result?.data?.admin ??
+      result?.data?.user ??
+      result?.data ??
+      result?.admin ??
+      result?.user;
+
+    if (
+      result?.status === 'error' ||
+      !admin ||
+      typeof admin !== 'object' ||
+      Array.isArray(admin)
+    ) {
+      throw new Error('Unable to validate the current admin session.');
     }
 
-    return { data: user, error: null };
+    localStorage.setItem(USER_KEY, JSON.stringify(admin));
+
+    return admin;
   },
 
   async logout() {
-    try {
-      const response = await apiClient.post(
-        AUTH_ENDPOINTS.LOGOUT,
-        {},
-        {
-          mockHandler: () => ({ success: true }),
-        }
-      );
-
-      // A missing backend logout endpoint should not prevent
-      // clearing the local session.
-      return response;
-    } finally {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
-    }
+    clearStoredSession();
+    return { success: true };
   },
+
+  clearStoredSession,
 
   getToken() {
     return localStorage.getItem(TOKEN_KEY);

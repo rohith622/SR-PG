@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-
+import authService from "../../services/authService";
 import { useToast } from "../common/Toast";
 import { AppShell } from "./AppShell";
 import { ConfirmDialog } from "../common/ConfirmDialog";
@@ -139,15 +139,20 @@ function MainApp() {
     toast.success("Sample demo data restored successfully.");
   };
 
-  const handleSignOutConfirm = () => {
-    sessionStorage.removeItem("sr_pg_demo_authenticated");
-    localStorage.removeItem("sr_pg_auth_token");
-
-    setIsSignOutConfirmOpen(false);
-
-    navigate("/admin/login", { replace: true });
-
-    toast.info("You have signed out.");
+  const handleSignOutConfirm = async () => {
+    try {
+      await authService.logout();
+      console.log(
+        "Token after logout:",
+        localStorage.getItem("sr_pg_auth_token"),
+      );
+      setIsSignOutConfirmOpen(false);
+      navigate("/admin/login", { replace: true });
+      toast.info("You have signed out.");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast.error("Unable to sign out. Please try again.");
+    }
   };
 
   return (

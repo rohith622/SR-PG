@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Building2,
   LockKeyhole,
@@ -12,8 +12,8 @@ import {
   ClipboardCheck,
   Globe,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { authService } from "../services/authService";
+import { useNavigate, useLocation } from "react-router-dom";
+import authService from "../services/authService";
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -22,19 +22,24 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const location = useLocation();
   const handleSubmit = async (event) => {
     event.preventDefault();
+
     setMessage("");
     setIsLoading(true);
 
     try {
-      await authService.login({ email: email.trim(), password });
+      await authService.login({
+        email,
+        password,
+      });
 
-      // Remember-me currently affects the UI only.
-      // Session persistence follows your existing token strategy.
-      navigate("/admin/dashboard", { replace: true });
+      const destination = location.state?.from?.pathname || "/admin/dashboard";
+
+      navigate(destination, { replace: true });
     } catch (error) {
-      setMessage(error.message || "Unable to sign in. Please try again.");
+      setMessage(error.message || "Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -272,7 +277,7 @@ export default function LoginPage() {
                   type="submit"
                   className="group flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#103b29] via-[#174b36] to-[#20573b] px-4 text-xs font-bold text-white shadow-md shadow-emerald-950/15 transition duration-300 hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a85d] focus-visible:ring-offset-2 active:translate-y-0"
                 >
-                  Sign In
+                  {isLoading ? "Signing in..." : "Sign In"}{" "}
                   <ArrowRight
                     size={15}
                     className="transition-transform group-hover:translate-x-1"
