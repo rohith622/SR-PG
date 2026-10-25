@@ -1,12 +1,12 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { SummaryCards } from '../components/dashboard/SummaryCards';
 import { QuickActions } from '../components/dashboard/QuickActions';
+import { RentOverview } from '../components/dashboard/RentOverview';
 import { OccupancyBar } from '../components/dashboard/OccupancyBar';
 import { EmptyState } from '../components/common/EmptyState';
 import dashboardService from '../services/dashboardService';
-import { DoorClosed, Plus } from 'lucide-react';
+import { DoorClosed, Plus, RotateCcw } from 'lucide-react';
 
 export const DashboardPage = ({
   onNavigateTab,
@@ -17,14 +17,19 @@ export const DashboardPage = ({
 }) => {
   const [summary, setSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async (monthToLoad) => {
     setIsLoading(true);
 
     try {
-      const response = await dashboardService.getDashboardSummary();
+      const month = monthToLoad || selectedMonth;
+      const response = await dashboardService.getDashboardSummary(month);
 
-      if (response.data) {
+      if (response?.data) {
         setSummary(response.data);
       }
     } catch (err) {
@@ -32,15 +37,48 @@ export const DashboardPage = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedMonth]);
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    let isSubscribed = true;
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await dashboardService.getDashboardSummary(selectedMonth);
+        if (isSubscribed && response?.data) {
+          setSummary(response.data);
+        }
+      } catch (err) {
+        if (isSubscribed) {
+          console.error('Failed to load dashboard summary:', err);
+        }
+      } finally {
+        if (isSubscribed) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [selectedMonth]);
+
+  const handleMonthChange = (newMonth) => {
+    if (!newMonth || newMonth === selectedMonth) return;
+    setSelectedMonth(newMonth);
+  };
 
   const handleCardClick = (card) => {
     if (card.targetTab) {
       onNavigateTab(card.targetTab);
+    } else if (card.id === 'tenants') {
+      onNavigateTab('history');
+    } else if (card.id === 'rent') {
+      onNavigateTab('rent');
     }
   };
 
@@ -53,6 +91,17 @@ export const DashboardPage = ({
           { label: 'Home' },
           { label: 'Dashboard' },
         ]}
+        actions={
+          <button
+            type="button"
+            onClick={() => loadDashboardData()}
+            disabled={isLoading}
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-[#e5dfd3] bg-white px-3.5 text-xs font-semibold text-emerald-800 shadow-sm hover:bg-slate-50 disabled:opacity-50 sm:text-sm"
+          >
+            <RotateCcw size={14} className={isLoading ? 'animate-spin' : ''} />
+            <span>Refresh</span>
+          </button>
+        }
       />
 
       {isLoading && !summary ? (
@@ -63,7 +112,7 @@ export const DashboardPage = ({
             Fetching property occupancy and ledger records...
           </p>
         </div>
-      ) : summary?.totalRooms === 0 ? (
+      ) : summary?.totalRooms === 0 && summary?.totalBeds === 0 ? (
         <EmptyState
           icon={DoorClosed}
           title="No rooms added yet"
@@ -76,8 +125,11 @@ export const DashboardPage = ({
         <>
           {/* Quick actions */}
           <QuickActions
+            onOpenAddRoom={onOpenAddRoom}
+            onOpenAddBed={onOpenAddBed}
             onAddRoom={onOpenAddRoom}
             onAddBed={onOpenAddBed}
+            onOpenAddTenant={onOpenAddTenant}
             onAddTenant={onOpenAddTenant}
             onViewBedManagement={() => onNavigateTab('beds')}
           />
@@ -88,6 +140,13 @@ export const DashboardPage = ({
             onCardClick={handleCardClick}
           />
 
+          {/* Payment Doughnut Chart & Collection Comparison */}
+          <RentOverview
+            rentSummary={summary?.rent}
+            month={selectedMonth}
+            onMonthChange={handleMonthChange}
+          />
+
           {/* Rent due management */}
           <OccupancyBar
             occupiedBeds={summary?.occupiedBeds || 0}
@@ -95,6 +154,8 @@ export const DashboardPage = ({
             maintenanceBeds={summary?.maintenanceBeds || 0}
             totalBeds={summary?.totalBeds || 0}
             occupancyRate={summary?.occupancyRate || 0}
+            rentDues={summary?.rentDues || []}
+            totalPending={summary?.rent?.pending}
           />
         </>
       )}

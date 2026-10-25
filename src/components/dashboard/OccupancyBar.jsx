@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import {
   Phone,
@@ -9,74 +8,37 @@ import {
   MessageCircle,
   MoreVertical,
   FileText,
+  CheckCircle2,
 } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 
-const DUMMY_RENT_DATA = [
-  {
-    id: 1,
-    name: 'Rahul Kumar',
-    phone: '9876543210',
-    roomNumber: '102',
-    amountDue: 6000,
-    dueDate: '20 Oct 2026',
-    status: 'OVERDUE',
-  },
-  {
-    id: 2,
-    name: 'Arun Kumar',
-    phone: '9876543211',
-    roomNumber: '104',
-    amountDue: 6000,
-    dueDate: '21 Oct 2026',
-    status: 'OVERDUE',
-  },
-  {
-    id: 3,
-    name: 'Suresh Reddy',
-    phone: '9876543212',
-    roomNumber: '105',
-    amountDue: 7500,
-    dueDate: '23 Oct 2026',
-    status: 'DUE TODAY',
-  },
-  {
-    id: 4,
-    name: 'Kiran Kumar',
-    phone: '9876543213',
-    roomNumber: '108',
-    amountDue: 5500,
-    dueDate: '25 Oct 2026',
-    status: 'UPCOMING',
-  },
-  {
-    id: 5,
-    name: 'Praveen Rao',
-    phone: '9876543214',
-    roomNumber: '110',
-    amountDue: 6500,
-    dueDate: '26 Oct 2026',
-    status: 'UPCOMING',
-  },
-];
-
-export const OccupancyBar = () => {
+export const OccupancyBar = ({
+  rentDues = [],
+  totalPending: propTotalPending = null,
+}) => {
   const [statusFilter, setStatusFilter] = useState('ALL');
 
   const filteredTenants = useMemo(() => {
-    if (statusFilter === 'ALL') return DUMMY_RENT_DATA;
+    if (!rentDues || !rentDues.length) return [];
+    if (statusFilter === 'ALL') return rentDues;
 
-    return DUMMY_RENT_DATA.filter(
+    return rentDues.filter(
       (tenant) => tenant.status === statusFilter
     );
-  }, [statusFilter]);
+  }, [rentDues, statusFilter]);
 
-  const totalPending = filteredTenants.reduce(
-    (total, tenant) => total + tenant.amountDue,
-    0
-  );
+  const totalPending = useMemo(() => {
+    if (propTotalPending !== null && propTotalPending !== undefined && statusFilter === 'ALL') {
+      return propTotalPending;
+    }
+    return filteredTenants.reduce(
+      (total, tenant) => total + (Number(tenant.amountDue) || 0),
+      0
+    );
+  }, [filteredTenants, propTotalPending, statusFilter]);
 
   const handleCall = (phone) => {
+    if (!phone) return;
     window.location.href = `tel:${phone}`;
   };
 
@@ -313,11 +275,16 @@ export const OccupancyBar = () => {
       {/* Empty state */}
       {filteredTenants.length === 0 && (
         <div className="px-4 py-12 text-center">
+          <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-600 mb-2" />
           <p className="text-sm font-semibold text-slate-700">
-            No tenants found
+            {rentDues.length === 0
+              ? 'All rent payments are settled'
+              : 'No tenants match this status'}
           </p>
           <p className="mt-1 text-xs text-slate-500">
-            Try selecting another rent status.
+            {rentDues.length === 0
+              ? 'There are currently no overdue or pending rent payments.'
+              : 'Try selecting another status filter.'}
           </p>
         </div>
       )}
@@ -325,7 +292,7 @@ export const OccupancyBar = () => {
       {/* Footer */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#eee9df] bg-[#faf8f3] px-4 py-3 sm:px-5">
         <p className="text-[11px] text-slate-500">
-          Showing {filteredTenants.length} of {DUMMY_RENT_DATA.length} tenants
+          Showing {filteredTenants.length} of {rentDues.length} tenants with pending dues
         </p>
 
         <p className="flex items-center gap-1.5 text-[11px] font-semibold text-rose-700">
@@ -344,10 +311,13 @@ export const OccupancyBar = () => {
 const Avatar = ({ name }) => (
   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#e9dfc8] bg-gradient-to-br from-[#fbf0d9] to-[#e9d6ae] text-xs font-bold text-[#76501d]">
     {name
-      .split(' ')
-      .map((part) => part[0])
-      .join('')
-      .slice(0, 2)}
+      ? name
+          .split(' ')
+          .map((part) => part[0])
+          .join('')
+          .slice(0, 2)
+          .toUpperCase()
+      : 'T'}
   </div>
 );
 

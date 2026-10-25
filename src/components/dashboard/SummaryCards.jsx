@@ -107,7 +107,8 @@ export const SummaryCards = ({ summary, onCardClick }) => {
       icon: Users,
       decoration: Users,
       tone: 'gold',
-      clickable: false,
+      clickable: true,
+      targetTab: 'history',
     },
     {
       id: 'rent',
@@ -123,7 +124,8 @@ export const SummaryCards = ({ summary, onCardClick }) => {
       icon: IndianRupee,
       decoration: FileText,
       tone: 'red',
-      clickable: false,
+      clickable: true,
+      targetTab: 'rent',
     },
   ];
 

@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React from "react";
 import {
   DoorClosed,
   BedDouble,
@@ -7,17 +6,24 @@ import {
   ArrowRight,
   LayoutGrid,
   Zap,
-} from 'lucide-react';
+} from "lucide-react";
 
 const buttonBase =
-  'group inline-flex min-h-8 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-[11px] font-semibold leading-tight transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-[#c6a96a] hover:bg-gradient-to-r hover:from-[#123d2d] hover:via-[#176044] hover:to-[#246b4c] hover:text-white hover:shadow-[0_8px_22px_-8px_rgba(198,169,106,0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c6a96a] active:translate-y-0 active:scale-[0.98] sm:min-h-10 sm:gap-2 sm:px-3.5 sm:py-2.5 sm:text-sm sm:leading-normal';
+  "group inline-flex min-h-8 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-[11px] font-semibold leading-tight transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-[#c6a96a] hover:bg-gradient-to-r hover:from-[#123d2d] hover:via-[#176044] hover:to-[#246b4c] hover:text-white hover:shadow-[0_8px_22px_-8px_rgba(198,169,106,0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c6a96a] active:translate-y-0 active:scale-[0.98] sm:min-h-10 sm:gap-2 sm:px-3.5 sm:py-2.5 sm:text-sm sm:leading-normal";
 
 export const QuickActions = ({
+  onOpenAddRoom,
   onAddRoom,
+  onOpenAddBed,
   onAddBed,
   onAddTenant,
+  onOpenAddTenant,
   onViewBedManagement,
 }) => {
+  const handleAddRoom = onOpenAddRoom || onAddRoom;
+  const handleAddBed = onOpenAddBed || onAddBed;
+  const handleAddTenant = onOpenAddTenant || onAddTenant;
+
   return (
     <section className="relative mb-5 overflow-hidden rounded-xl border border-emerald-700/70 bg-gradient-to-br from-[#0b2c20] via-[#123d2d] to-[#08271d] p-3.5 text-white shadow-[0_12px_30px_-16px_rgba(11,44,32,0.65)] sm:mb-6 sm:rounded-2xl sm:p-6">
       {/* Decorative gradient glow */}
@@ -47,25 +53,31 @@ export const QuickActions = ({
         <div className="grid grid-cols-2 gap-1.5 min-[380px]:gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-2.5 xl:shrink-0">
           <button
             type="button"
-            onClick={onAddRoom}
+            onClick={handleAddRoom}
             className={`${buttonBase} border-emerald-500/70 bg-white/[0.04] text-white`}
           >
-            <DoorClosed size={14} className="shrink-0 text-[#e4c77e] transition-colors group-hover:text-white sm:h-[19px] sm:w-[19px]" />
+            <DoorClosed
+              size={14}
+              className="shrink-0 text-[#e4c77e] transition-colors group-hover:text-white sm:h-[19px] sm:w-[19px]"
+            />
             <span>Add Room</span>
           </button>
 
           <button
             type="button"
-            onClick={onAddBed}
+            onClick={handleAddBed}
             className={`${buttonBase} border-white/30 bg-white/[0.04] text-white`}
           >
-            <BedDouble size={14} className="shrink-0 text-emerald-200 transition-colors group-hover:text-white sm:h-[19px] sm:w-[19px]" />
+            <BedDouble
+              size={14}
+              className="shrink-0 text-emerald-200 transition-colors group-hover:text-white sm:h-[19px] sm:w-[19px]"
+            />
             <span>Add Bed</span>
           </button>
 
           <button
             type="button"
-            onClick={onAddTenant}
+            onClick={handleAddTenant}
             className={`${buttonBase} border-[#e2c47d] bg-gradient-to-r from-[#f7e8bd] to-[#dfc071] text-[#173d2d] shadow-sm shadow-black/10 hover:from-[#123d2d] hover:via-[#176044] hover:to-[#246b4c] hover:text-white`}
           >
             <UserPlus size={14} className="shrink-0 sm:h-[19px] sm:w-[19px]" />
@@ -77,9 +89,15 @@ export const QuickActions = ({
             onClick={onViewBedManagement}
             className={`${buttonBase} border-emerald-500/60 bg-white/[0.03] text-white`}
           >
-            <LayoutGrid size={14} className="shrink-0 text-emerald-200 transition-colors group-hover:text-white sm:h-[19px] sm:w-[19px]" />
+            <LayoutGrid
+              size={14}
+              className="shrink-0 text-emerald-200 transition-colors group-hover:text-white sm:h-[19px] sm:w-[19px]"
+            />
             <span>Bed Management</span>
-            <ArrowRight size={12} className="shrink-0 text-[#e4c77e] transition-transform duration-300 group-hover:translate-x-1 group-hover:text-white sm:h-[17px] sm:w-[17px]" />
+            <ArrowRight
+              size={12}
+              className="shrink-0 text-[#e4c77e] transition-transform duration-300 group-hover:translate-x-1 group-hover:text-white sm:h-[17px] sm:w-[17px]"
+            />
           </button>
         </div>
       </div>

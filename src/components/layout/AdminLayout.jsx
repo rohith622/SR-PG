@@ -5,8 +5,10 @@ import { useToast } from "../common/Toast";
 import { AppShell } from "./AppShell";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import { DashboardPage } from "../../pages/DashboardPage";
-import { AddRoomModal } from "../rooms/AddRoomModal";
-
+import AddFloorModal from "../common/floors/AddFloorModal";
+import AddRoomModal from "../common/rooms/AddRoomModal";
+import AddBedModal from "../common/beds/AddBedModal";
+import AddTenantModal from "../common/tenants/AddTenantModal";
 import { storage, resetToSampleData } from "../../services/storageService";
 
 import roomService from "../../services/roomService";
@@ -52,7 +54,8 @@ function MainApp() {
 
   // Modal state.
   const [isAddRoomOpen, setIsAddRoomOpen] = useState(false);
-
+  const [isAddFloorOpen, setIsAddFloorOpen] = useState(false);
+  const [isAddBedOpen, setIsAddBedOpen] = useState(false);
   const [addBedState, setAddBedState] = useState({
     isOpen: false,
     preselectedRoom: null,
@@ -89,7 +92,9 @@ function MainApp() {
   };
 
   useEffect(() => {
-    refreshModalData();
+    if (refreshKey > 0) {
+      refreshModalData();
+    }
   }, [refreshKey]);
 
   // Add Room / Bed / Tenant workflows.
@@ -109,8 +114,9 @@ function MainApp() {
           ? availableRooms.find((item) => item.id === selectedRoomId)
           : null),
     });
-  };
 
+    setIsAddBedOpen(true);
+  };
   const handleOpenAddTenant = (bed = null) => {
     refreshModalData();
 
@@ -168,15 +174,24 @@ function MainApp() {
         <DashboardPage
           key={`dashboard-${refreshKey}`}
           onNavigateTab={setCurrentTab}
+          onOpenAddFloor={() => setIsAddFloorOpen(true)}
           onOpenAddRoom={handleOpenAddRoom}
-          onOpenAddBed={() => handleOpenAddBed(null)}
+          onOpenAddBed={handleOpenAddBed}
           onOpenAddTenant={() => handleOpenAddTenant(null)}
           onSelectRoomInBedManagement={handleSelectRoomInBedManagement}
         />
       )}
 
       {/* Bed Management */}
-      {currentTab === "beds" && <BedManagement key={`beds-${refreshKey}`} />}
+      {currentTab === "beds" && (
+        <BedManagement
+          key={`beds-${refreshKey}`}
+          onOpenAddFloor={() => setIsAddFloorOpen(true)}
+          onOpenAddRoom={() => setIsAddRoomOpen(true)}
+          onOpenAddBed={() => handleOpenAddBed()}
+          initialSelectedRoomId={selectedRoomId}
+        />
+      )}
 
       {/* Tenant History */}
       {currentTab === "history" && (
@@ -190,7 +205,51 @@ function MainApp() {
       <AddRoomModal
         isOpen={isAddRoomOpen}
         onClose={() => setIsAddRoomOpen(false)}
-        onRoomCreated={handleRoomCreated}
+        onRoomCreated={(room) => {
+          setRefreshKey((key) => key + 1);
+          toast.success("Room created successfully.");
+        }}
+      />
+      <AddFloorModal
+        isOpen={isAddFloorOpen}
+        onClose={() => setIsAddFloorOpen(false)}
+        onFloorCreated={async () => {
+          setIsAddFloorOpen(false);
+          setRefreshKey((key) => key + 1);
+          toast.success("Floor created successfully.");
+        }}
+      />
+      <AddBedModal
+        isOpen={isAddBedOpen}
+        onClose={() => setIsAddBedOpen(false)}
+        onBedCreated={async () => {
+          setIsAddBedOpen(false);
+          setRefreshKey((key) => key + 1);
+          toast.success("Bed created successfully.");
+        }}
+      />
+
+      <AddTenantModal
+        isOpen={addTenantState.isOpen}
+        preselectedBed={addTenantState.preselectedBed}
+        onClose={() =>
+          setAddTenantState({
+            isOpen: false,
+            preselectedBed: null,
+          })
+        }
+        onTenantCreated={async () => {
+          setAddTenantState({
+            isOpen: false,
+            preselectedBed: null,
+          });
+
+          setRefreshKey((key) => key + 1);
+
+          await refreshModalData();
+
+          toast.success("Tenant created successfully.");
+        }}
       />
 
       {/* Reset Demo Data Confirmation */}

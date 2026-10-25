@@ -1,64 +1,168 @@
 /**
  * Dashboard Aggregation Service
- * Collects real computed metrics across rooms, beds, tenants, and recent activities.
+ * Collects real computed metrics across rooms, beds, tenants, and rent dues.
  */
 
 import apiClient from './apiClient';
-import { storage } from './storageService';
+
+const getCurrentMonthString = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const formatDateToDisplay = (dateStr) => {
+  if (!dateStr) return '—';
+  try {
+    const cleanDate = dateStr.includes('T') ? dateStr : `${dateStr}T00:00:00`;
+    const d = new Date(cleanDate);
+    if (isNaN(d.getTime())) return String(dateStr);
+    return d.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return String(dateStr);
+  }
+};
 
 export const dashboardService = {
-  async getDashboardSummary() {
-    return apiClient.get('/api/dashboard/summary', {
-      mockHandler: () => {
-        const rooms = storage.getRooms();
-        const beds = storage.getAllBeds();
-        const tenants = storage.getTenants();
-        const activities = storage.getActivities();
+  async getDashboardSummary(targetMonth) {
+    const currentMonth = targetMonth || getCurrentMonthString();
+    const todayStr = new Date().toISOString().slice(0, 10);
 
-        const totalRooms = rooms.length;
-        const totalBeds = beds.length;
-        const occupiedBeds = beds.filter((b) => b.status === 'Occupied').length;
-        const availableBeds = beds.filter((b) => b.status === 'Available').length;
-        const maintenanceBeds = beds.filter((b) => b.status === 'Maintenance').length;
-        const activeTenants = tenants.length;
+    try {
+      const [roomsRes, bedsRes, tenantsRes, paymentsRes] = await Promise.all([
+        apiClient.get('/api/management?type=room'),
+        apiClient.get('/api/management?type=bed'),
+        apiClient.get(`/api/tenants?month=${currentMonth}&limit=1000`),
+        apiClient.get(`/api/rent-payments?month=${currentMonth}&limit=1000`),
+      ]);
 
-        // Rent calculations
-        let totalRentPending = 0;
-        let totalRentCollected = 0;
-        let dueSoonCount = 0;
-        let overdueCount = 0;
+      const rooms =
+        roomsRes?.data?.data?.items || roomsRes?.data?.items || [];
+      const beds =
+        bedsRes?.data?.data?.items || bedsRes?.data?.items || [];
+      const rawTenants =
+        tenantsRes?.data?.data?.tenants ||
+        tenantsRes?.data?.data?.items ||
+        tenantsRes?.data?.tenants ||
+        tenantsRes?.data?.items ||
+        [];
+      const rawPayments =
+        paymentsRes?.data?.data?.payments ||
+        paymentsRes?.data?.payments ||
+        [];
 
-        tenants.forEach((t) => {
-          totalRentPending += Number(t.pendingRentAmount || 0);
-          if (t.rentStatus === 'Overdue') overdueCount++;
-          if (t.rentStatus === 'Due Soon') dueSoonCount++;
-          
-          (t.paymentHistory || []).forEach((p) => {
-            totalRentCollected += Number(p.amount || 0);
+      const totalRooms = rooms.length;
+      const totalBeds = beds.length;
+      const occupiedBeds = beds.filter(
+        (b) => String(b.status || '').toLowerCase() === 'occupied'
+      ).length;
+      const availableBeds = beds.filter(
+        (b) => String(b.status || '').toLowerCase() === 'available'
+      ).length;
+      const maintenanceBeds = beds.filter(
+        (b) => String(b.status || '').toLowerCase() === 'maintenance'
+      ).length;
+
+      const activeTenantsList = rawTenants.filter(
+        (t) => t.tenantStatus !== 'CheckedOut'
+      );
+      const activeTenants = activeTenantsList.length;
+
+      const occupancyRate =
+        totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
+
+      // Rent and dues calculation
+      let totalRentPending = 0;
+      let totalRentCollected = rawPayments.reduce(
+        (sum, p) => sum + (Number(p.amountPaid) || 0),
+        0
+      );
+      let overdueCount = 0;
+      let dueSoonCount = 0;
+      const rentDues = [];
+
+      activeTenantsList.forEach((t) => {
+        const monthlyRent = Number(t.monthlyRent) || 0;
+        const rentData = t.rent || {};
+        const amountPaid = Number(rentData.amountPaid) || 0;
+        const outstanding =
+          rentData.outstandingAmount !== undefined
+            ? Number(rentData.outstandingAmount)
+            : Math.max(0, monthlyRent - amountPaid);
+
+        const dueDate =
+          rentData.rentDueDate ||
+          `${currentMonth}-${String(t.dueDay || 5).padStart(2, '0')}`;
+
+        if (outstanding > 0) {
+          totalRentPending += outstanding;
+
+          let status = 'UPCOMING';
+          if (dueDate < todayStr) {
+            status = 'OVERDUE';
+            overdueCount++;
+          } else if (dueDate === todayStr) {
+            status = 'DUE TODAY';
+            dueSoonCount++;
+          } else {
+            status = 'UPCOMING';
+            dueSoonCount++;
+          }
+
+          rentDues.push({
+            id: String(t.id || t._id),
+            name: t.fullName || t.name || 'Tenant',
+            phone: t.phone || '',
+            roomNumber: String(t.room?.roomNumber || t.roomNumber || '—'),
+            amountDue: outstanding,
+            dueDate: formatDateToDisplay(dueDate),
+            rawDueDate: dueDate,
+            status,
           });
-        });
+        }
+      });
 
-        const occupancyRate = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
+      // Sort rent dues: Overdue first, then Due Today, then Upcoming
+      const statusWeight = { OVERDUE: 0, 'DUE TODAY': 1, UPCOMING: 2 };
+      rentDues.sort((a, b) => {
+        const weightDiff =
+          (statusWeight[a.status] ?? 3) - (statusWeight[b.status] ?? 3);
+        if (weightDiff !== 0) return weightDiff;
+        return (a.rawDueDate || '').localeCompare(b.rawDueDate || '');
+      });
 
-        return {
-          totalRooms,
-          totalBeds,
-          occupiedBeds,
-          availableBeds,
-          maintenanceBeds,
-          activeTenants,
-          occupancyRate,
-          rent: {
-            pending: totalRentPending,
-            collected: totalRentCollected,
-            dueSoonCount,
-            overdueCount,
-          },
-          roomOverview: rooms,
-          recentActivities: activities.slice(0, 8),
-        };
-      },
-    });
+      const summary = {
+        totalRooms,
+        totalBeds,
+        occupiedBeds,
+        availableBeds,
+        maintenanceBeds,
+        activeTenants,
+        occupancyRate,
+        rent: {
+          pending: totalRentPending,
+          collected: totalRentCollected,
+          dueSoonCount,
+          overdueCount,
+        },
+        rentDues,
+        roomOverview: rooms,
+      };
+
+      return {
+        data: summary,
+        error: null,
+      };
+    } catch (err) {
+      console.error('[DashboardService] Error fetching summary:', err);
+      return {
+        data: null,
+        error: err?.message || 'Failed to fetch dashboard data',
+      };
+    }
   },
 };
 

@@ -1,28 +1,99 @@
+
 /**
  * Bed Service
- * Encapsulates all Bed-related API requests and response transformations.
- * Backend contract endpoints:
- * - GET   /api/rooms/:roomId/beds    - List beds for selected room
- * - POST  /api/rooms/:roomId/beds    - Create a bed after server-side duplicate & capacity checks
- * - GET   /api/beds                  - List all beds across property
- * - PATCH /api/beds/:bedId/status    - Update bed status (Available / Maintenance)
- * - POST  /api/beds/:bedId/transfer  - Transfer tenant between beds
+ * Handles floor, room, and bed API requests.
+ *
+ * Management GET endpoints:
+ * - GET /api/management?type=floor
+ * - GET /api/management?type=room
+ * - GET /api/management?type=room&floorId=FLOOR_ID
+ * - GET /api/management?type=bed
+ * - GET /api/management?type=bed&roomId=ROOM_ID
+ * - GET /api/management?type=bed&floorId=FLOOR_ID
+ *
+ * Existing bed endpoints:
+ * - GET   /api/rooms/:roomId/beds
+ * - POST  /api/rooms/:roomId/beds
+ * - GET   /api/beds
+ * - PATCH /api/beds/:bedId/status
+ * - POST  /api/beds/:bedId/transfer
  */
 
-import apiClient from './apiClient';
-import { storage } from './storageService';
+import apiClient from "./apiClient";
+import { storage } from "./storageService";
 
 const BED_ENDPOINTS = {
+  MANAGEMENT: "/api/management",
+
   LIST_BY_ROOM: (roomId) => `/api/rooms/${roomId}/beds`,
   CREATE_IN_ROOM: (roomId) => `/api/rooms/${roomId}/beds`,
-  ALL_BEDS: '/api/beds',
+  ALL_BEDS: "/api/beds",
   UPDATE_STATUS: (bedId) => `/api/beds/${bedId}/status`,
   TRANSFER: (bedId) => `/api/beds/${bedId}/transfer`,
 };
 
 export const bedService = {
+  // ==========================================
+  // FLOOR GET APIs
+  // ==========================================
+
   /**
-   * Fetch beds configured for a specific room
+   * Fetch all floors.
+   * GET /api/management?type=floor
+   */
+  async getAllFloors() {
+    return apiClient.get(BED_ENDPOINTS.MANAGEMENT, {
+      params: {
+        type: "floor",
+      },
+    });
+  },
+
+  // ==========================================
+  // ROOM GET APIs
+  // ==========================================
+
+  /**
+   * Fetch all rooms or rooms filtered by floor.
+   * GET /api/management?type=room
+   * GET /api/management?type=room&floorId=FLOOR_ID
+   */
+  async getRoomsByFloor(floorId) {
+    return apiClient.get(BED_ENDPOINTS.MANAGEMENT, {
+      params: {
+        type: "room",
+        ...(floorId ? { floorId } : {}),
+      },
+    });
+  },
+
+  // ==========================================
+  // MANAGEMENT BED GET APIs
+  // ==========================================
+
+  /**
+   * Fetch all management beds or filter by room/floor.
+   * GET /api/management?type=bed
+   * GET /api/management?type=bed&roomId=ROOM_ID
+   * GET /api/management?type=bed&floorId=FLOOR_ID
+   */
+  async getManagementBeds({ roomId, floorId } = {}) {
+    return apiClient.get(BED_ENDPOINTS.MANAGEMENT, {
+      params: {
+        type: "bed",
+        ...(roomId ? { roomId } : {}),
+        ...(floorId ? { floorId } : {}),
+      },
+    });
+  },
+
+  // ==========================================
+  // EXISTING BED GET APIs
+  // ==========================================
+
+  /**
+   * Fetch beds configured for a specific room.
+   * Existing endpoint retained.
    */
   async getBedsByRoom(roomId) {
     return apiClient.get(BED_ENDPOINTS.LIST_BY_ROOM(roomId), {
@@ -31,7 +102,8 @@ export const bedService = {
   },
 
   /**
-   * Fetch all beds across the entire property
+   * Fetch all beds across the property.
+   * Existing endpoint retained.
    */
   async getAllBeds() {
     return apiClient.get(BED_ENDPOINTS.ALL_BEDS, {
@@ -39,32 +111,59 @@ export const bedService = {
     });
   },
 
+  // ==========================================
+  // EXISTING BED CREATE API
+  // ==========================================
+
   /**
-   * Create a new bed in a room
-   * @param {Object} bedData - { roomId, bedNumber, bedType, monthlyRent, status }
+   * Create a new bed in a room.
+   * @param {Object} bedData
+   * { roomId, bedNumber, bedType, monthlyRent, status }
    */
   async createBed(bedData) {
-    return apiClient.post(BED_ENDPOINTS.CREATE_IN_ROOM(bedData.roomId), bedData, {
-      mockHandler: (payload) => storage.createBed(payload),
-    });
+    return apiClient.post(
+      BED_ENDPOINTS.CREATE_IN_ROOM(bedData.roomId),
+      bedData,
+      {
+        mockHandler: (payload) => storage.createBed(payload),
+      }
+    );
   },
 
+  // ==========================================
+  // EXISTING BED STATUS API
+  // ==========================================
+
   /**
-   * Update status of a bed (e.g. Available <-> Maintenance)
+   * Update bed status.
+   * Available / Maintenance
    */
   async updateBedStatus(bedId, status) {
-    return apiClient.patch(BED_ENDPOINTS.UPDATE_STATUS(bedId), { status }, {
-      mockHandler: () => storage.updateBedStatus(bedId, status),
-    });
+    return apiClient.patch(
+      BED_ENDPOINTS.UPDATE_STATUS(bedId),
+      { status },
+      {
+        mockHandler: () => storage.updateBedStatus(bedId, status),
+      }
+    );
   },
 
+  // ==========================================
+  // EXISTING BED TRANSFER API
+  // ==========================================
+
   /**
-   * Transfer tenant to another bed
+   * Transfer a tenant to another bed.
    */
   async transferBed(tenantId, newBedId) {
-    return apiClient.post(BED_ENDPOINTS.TRANSFER(newBedId), { tenantId, newBedId }, {
-      mockHandler: () => storage.transferBed(tenantId, newBedId),
-    });
+    return apiClient.post(
+      BED_ENDPOINTS.TRANSFER(newBedId),
+      { tenantId, newBedId },
+      {
+        mockHandler: () =>
+          storage.transferBed(tenantId, newBedId),
+      }
+    );
   },
 };
 

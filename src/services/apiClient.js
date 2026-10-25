@@ -53,6 +53,7 @@ export async function apiRequest(endpoint, options = {}) {
     method = 'GET',
     body = null,
     headers = {},
+    params = null,
     mockHandler = null,
   } = options;
 
@@ -85,7 +86,21 @@ export async function apiRequest(endpoint, options = {}) {
   }
 
   // 2. REAL BACKEND API CALL
-  const url = `${API_BASE_URL}${endpoint}`;
+  let queryString = '';
+  if (params && typeof params === 'object') {
+    const searchParams = new URLSearchParams();
+    for (const [key, val] of Object.entries(params)) {
+      if (val !== undefined && val !== null && val !== '') {
+        searchParams.append(key, val);
+      }
+    }
+    const qs = searchParams.toString();
+    if (qs) {
+      queryString = (endpoint.includes('?') ? '&' : '?') + qs;
+    }
+  }
+
+  const url = `${API_BASE_URL}${endpoint}${queryString}`;
   const authToken = localStorage.getItem(TOKEN_KEY);
 
   const defaultHeaders = {
