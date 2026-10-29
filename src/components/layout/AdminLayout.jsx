@@ -6,6 +6,7 @@ import { AppShell } from "./AppShell";
 import { ConfirmDialog } from "../common/ConfirmDialog";
 import { DashboardPage } from "../../pages/DashboardPage";
 import AddFloorModal from "../common/floors/AddFloorModal";
+import AddFlatModal from "../common/flats/AddFlatModal";
 import AddRoomModal from "../common/rooms/AddRoomModal";
 import AddBedModal from "../common/beds/AddBedModal";
 import AddTenantModal from "../common/tenants/AddTenantModal";
@@ -53,8 +54,10 @@ function MainApp() {
   const [availableBeds, setAvailableBeds] = useState([]);
 
   // Modal state.
-  const [isAddRoomOpen, setIsAddRoomOpen] = useState(false);
   const [isAddFloorOpen, setIsAddFloorOpen] = useState(false);
+  const [isAddFlatOpen, setIsAddFlatOpen] = useState(false);
+  const [addFlatFloorId, setAddFlatFloorId] = useState("");
+  const [isAddRoomOpen, setIsAddRoomOpen] = useState(false);
   const [isAddBedOpen, setIsAddBedOpen] = useState(false);
   const [addBedState, setAddBedState] = useState({
     isOpen: false,
@@ -97,9 +100,25 @@ function MainApp() {
     }
   }, [refreshKey]);
 
-  // Add Room / Bed / Tenant workflows.
-  const handleOpenAddRoom = () => {
+  // Add Floor / Flat / Room / Bed / Tenant workflows.
+  const handleOpenAddFloor = () => {
     refreshModalData();
+    setIsAddFloorOpen(true);
+  };
+
+  const [addRoomFloorId, setAddRoomFloorId] = useState("");
+  const [addRoomFlatId, setAddRoomFlatId] = useState("");
+
+  const handleOpenAddFlat = (floorId = "") => {
+    refreshModalData();
+    setAddFlatFloorId(floorId);
+    setIsAddFlatOpen(true);
+  };
+
+  const handleOpenAddRoom = (floorId = "", flatId = "") => {
+    refreshModalData();
+    setAddRoomFloorId(floorId || "");
+    setAddRoomFlatId(flatId || "");
     setIsAddRoomOpen(true);
   };
 
@@ -174,7 +193,8 @@ function MainApp() {
         <DashboardPage
           key={`dashboard-${refreshKey}`}
           onNavigateTab={setCurrentTab}
-          onOpenAddFloor={() => setIsAddFloorOpen(true)}
+          onOpenAddFloor={handleOpenAddFloor}
+          onOpenAddFlat={handleOpenAddFlat}
           onOpenAddRoom={handleOpenAddRoom}
           onOpenAddBed={handleOpenAddBed}
           onOpenAddTenant={() => handleOpenAddTenant(null)}
@@ -186,7 +206,8 @@ function MainApp() {
       {currentTab === "beds" && (
         <BedManagement
           key={`beds-${refreshKey}`}
-          onOpenAddFloor={() => setIsAddFloorOpen(true)}
+          onOpenAddFloor={handleOpenAddFloor}
+          onOpenAddFlat={handleOpenAddFlat}
           onOpenAddRoom={() => setIsAddRoomOpen(true)}
           onOpenAddBed={() => handleOpenAddBed()}
           initialSelectedRoomId={selectedRoomId}
@@ -201,15 +222,7 @@ function MainApp() {
       {/* Rent Payments */}
       {currentTab === "rent" && <RentPaymentPage key={`rent-${refreshKey}`} />}
 
-      {/* Add Room Modal */}
-      <AddRoomModal
-        isOpen={isAddRoomOpen}
-        onClose={() => setIsAddRoomOpen(false)}
-        onRoomCreated={(room) => {
-          setRefreshKey((key) => key + 1);
-          toast.success("Room created successfully.");
-        }}
-      />
+      {/* Add Floor Modal */}
       <AddFloorModal
         isOpen={isAddFloorOpen}
         onClose={() => setIsAddFloorOpen(false)}
@@ -219,6 +232,41 @@ function MainApp() {
           toast.success("Floor created successfully.");
         }}
       />
+
+      {/* Add Flat Modal */}
+      <AddFlatModal
+        isOpen={isAddFlatOpen}
+        preselectedFloorId={addFlatFloorId}
+        onClose={() => {
+          setIsAddFlatOpen(false);
+          setAddFlatFloorId("");
+        }}
+        onFlatCreated={async () => {
+          setIsAddFlatOpen(false);
+          setAddFlatFloorId("");
+          setRefreshKey((key) => key + 1);
+          toast.success("Flat created successfully.");
+        }}
+      />
+
+      {/* Add Room Modal */}
+      <AddRoomModal
+        isOpen={isAddRoomOpen}
+        preselectedFloorId={addRoomFloorId}
+        preselectedFlatId={addRoomFlatId}
+        onOpenAddFlat={handleOpenAddFlat}
+        onClose={() => {
+          setIsAddRoomOpen(false);
+          setAddRoomFloorId("");
+          setAddRoomFlatId("");
+        }}
+        onRoomCreated={(room) => {
+          setRefreshKey((key) => key + 1);
+          toast.success("Room created successfully.");
+        }}
+      />
+
+      {/* Add Bed Modal */}
       <AddBedModal
         isOpen={isAddBedOpen}
         onClose={() => setIsAddBedOpen(false)}

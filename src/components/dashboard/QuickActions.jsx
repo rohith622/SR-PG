@@ -1,6 +1,7 @@
 import React from "react";
 import {
   DoorClosed,
+  Home,
   BedDouble,
   UserPlus,
   ArrowRight,
@@ -12,6 +13,8 @@ const buttonBase =
   "group inline-flex min-h-8 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-[11px] font-semibold leading-tight transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-[#c6a96a] hover:bg-gradient-to-r hover:from-[#123d2d] hover:via-[#176044] hover:to-[#246b4c] hover:text-white hover:shadow-[0_8px_22px_-8px_rgba(198,169,106,0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c6a96a] active:translate-y-0 active:scale-[0.98] sm:min-h-10 sm:gap-2 sm:px-3.5 sm:py-2.5 sm:text-sm sm:leading-normal";
 
 export const QuickActions = ({
+  onOpenAddFlat,
+  onAddFlat,
   onOpenAddRoom,
   onAddRoom,
   onOpenAddBed,
@@ -20,6 +23,7 @@ export const QuickActions = ({
   onOpenAddTenant,
   onViewBedManagement,
 }) => {
+  const handleAddFlat = onOpenAddFlat || onAddFlat;
   const handleAddRoom = onOpenAddRoom || onAddRoom;
   const handleAddBed = onOpenAddBed || onAddBed;
   const handleAddTenant = onOpenAddTenant || onAddTenant;
@@ -53,12 +57,24 @@ export const QuickActions = ({
         <div className="grid grid-cols-2 gap-1.5 min-[380px]:gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-2.5 xl:shrink-0">
           <button
             type="button"
+            onClick={handleAddFlat}
+            className={`${buttonBase} border-emerald-500/70 bg-white/[0.04] text-white`}
+          >
+            <Home
+              size={14}
+              className="shrink-0 text-[#e4c77e] transition-colors group-hover:text-white sm:h-[19px] sm:w-[19px]"
+            />
+            <span>Add Flat</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handleAddRoom}
             className={`${buttonBase} border-emerald-500/70 bg-white/[0.04] text-white`}
           >
             <DoorClosed
               size={14}
-              className="shrink-0 text-[#e4c77e] transition-colors group-hover:text-white sm:h-[19px] sm:w-[19px]"
+              className="shrink-0 text-emerald-200 transition-colors group-hover:text-white sm:h-[19px] sm:w-[19px]"
             />
             <span>Add Room</span>
           </button>

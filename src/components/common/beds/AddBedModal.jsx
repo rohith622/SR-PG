@@ -310,10 +310,15 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
                 const capacity = Number(room.capacity || 0);
                 const bedCount = Number(room.bedCount || 0);
                 const full = bedCount >= capacity;
+                const flatLabel = room.flatNumber
+                  ? ` (Flat ${room.flatNumber})`
+                  : room.flatName
+                    ? ` (${room.flatName})`
+                    : "";
 
                 return (
                   <option key={room.id} value={room.id}>
-                    Room {room.roomNumber} · {bedCount}/{capacity} beds
+                    Room {room.roomNumber}{flatLabel} · {bedCount}/{capacity} beds
                     {full ? " · Full" : ""}
                   </option>
                 );

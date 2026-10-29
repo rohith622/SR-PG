@@ -4,6 +4,7 @@
  */
 
 import {
+  INITIAL_FLATS,
   INITIAL_ROOMS,
   INITIAL_BEDS,
   INITIAL_TENANTS,
@@ -14,6 +15,7 @@ import {
 import { normalizeString } from '../utils/formatters';
 
 const STORAGE_KEYS = {
+  FLATS: 'sr_pg_flats_v1',
   ROOMS: 'sr_pg_rooms_v1',
   BEDS: 'sr_pg_beds_v1',
   TENANTS: 'sr_pg_tenants_v1',
@@ -42,6 +44,9 @@ const saveToStorage = (key, data) => {
 
 // Initialize if empty
 export const initStorage = () => {
+  if (!localStorage.getItem(STORAGE_KEYS.FLATS)) {
+    saveToStorage(STORAGE_KEYS.FLATS, INITIAL_FLATS);
+  }
   if (!localStorage.getItem(STORAGE_KEYS.ROOMS)) {
     saveToStorage(STORAGE_KEYS.ROOMS, INITIAL_ROOMS);
   }
@@ -64,6 +69,7 @@ export const initStorage = () => {
 
 // Reset to sample initial data
 export const resetToSampleData = () => {
+  saveToStorage(STORAGE_KEYS.FLATS, INITIAL_FLATS);
   saveToStorage(STORAGE_KEYS.ROOMS, INITIAL_ROOMS);
   saveToStorage(STORAGE_KEYS.BEDS, INITIAL_BEDS);
   saveToStorage(STORAGE_KEYS.TENANTS, INITIAL_TENANTS);
@@ -91,6 +97,89 @@ export const logActivity = (type, title, description) => {
 export const storage = {
   // Property Info
   getPropertyInfo: () => getFromStorage(STORAGE_KEYS.PROPERTY, PROPERTY_INFO),
+
+  // Flats
+  getFlats: (floorId = null) => {
+    initStorage();
+    const flats = getFromStorage(STORAGE_KEYS.FLATS, []);
+    const rooms = getFromStorage(STORAGE_KEYS.ROOMS, []);
+    const beds = getFromStorage(STORAGE_KEYS.BEDS, []);
+
+    const filtered = floorId ? flats.filter((f) => f.floorId === floorId) : flats;
+
+    return filtered.map((flat) => {
+      const flatRooms = rooms.filter((r) => r.flatId === flat.id);
+      const flatRoomIds = flatRooms.map((r) => r.id);
+      const flatBeds = beds.filter((b) => flatRoomIds.includes(b.roomId));
+
+      return {
+        ...flat,
+        roomCount: flatRooms.length,
+        bedCount: flatBeds.length,
+      };
+    });
+  },
+
+  getFlatById: (flatId) => {
+    const flats = storage.getFlats();
+    return flats.find((f) => f.id === flatId) || null;
+  },
+
+  createFlat: (flatData) => {
+    const flats = getFromStorage(STORAGE_KEYS.FLATS, []);
+    const normalizedNewNum = normalizeString(flatData.flatNumber);
+
+    const isDuplicate = flats.some(
+      (f) =>
+        f.floorId === flatData.floorId &&
+        normalizeString(f.flatNumber) === normalizedNewNum
+    );
+
+    if (isDuplicate) {
+      throw new Error(`Flat number "${flatData.flatNumber}" already exists on this floor.`);
+    }
+
+    const newFlat = {
+      id: `flat-${Date.now()}`,
+      floorId: flatData.floorId,
+      flatNumber: flatData.flatNumber.trim(),
+      name: flatData.name ? flatData.name.trim() : flatData.flatNumber.trim(),
+      description: flatData.description ? flatData.description.trim() : '',
+      createdAt: new Date().toISOString(),
+    };
+
+    saveToStorage(STORAGE_KEYS.FLATS, [...flats, newFlat]);
+    logActivity('flat_added', 'New Flat Created', `Flat ${newFlat.flatNumber} added.`);
+    return newFlat;
+  },
+
+  updateFlat: (flatId, flatData) => {
+    const flats = getFromStorage(STORAGE_KEYS.FLATS, []);
+    const index = flats.findIndex((f) => f.id === flatId);
+    if (index === -1) {
+      throw new Error('Flat not found.');
+    }
+    const updated = {
+      ...flats[index],
+      ...flatData,
+      updatedAt: new Date().toISOString(),
+    };
+    flats[index] = updated;
+    saveToStorage(STORAGE_KEYS.FLATS, flats);
+    return updated;
+  },
+
+  deleteFlat: (flatId) => {
+    const rooms = getFromStorage(STORAGE_KEYS.ROOMS, []);
+    const hasRooms = rooms.some((r) => r.flatId === flatId);
+    if (hasRooms) {
+      throw new Error('Cannot delete this flat because it contains linked rooms.');
+    }
+    const flats = getFromStorage(STORAGE_KEYS.FLATS, []);
+    const updated = flats.filter((f) => f.id !== flatId);
+    saveToStorage(STORAGE_KEYS.FLATS, updated);
+    return { success: true };
+  },
 
   // Rooms
   getRooms: () => {

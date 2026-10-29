@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   DoorOpen,
+  Home,
   Layers3,
   Hash,
   Users,
@@ -10,6 +11,7 @@ import {
   ArrowRight,
   CheckCircle2,
   RefreshCw,
+  Plus,
   X,
 } from "lucide-react";
 
@@ -18,16 +20,26 @@ import apiClient from "../../../services/apiClient";
 
 const initialForm = {
   floorId: "",
+  flatId: "",
   roomNumber: "",
   capacity: "2",
   description: "",
 };
 
-export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
+export default function AddRoomModal({
+  isOpen,
+  onClose,
+  onRoomCreated,
+  onOpenAddFlat,
+  preselectedFloorId = "",
+  preselectedFlatId = "",
+}) {
   const [form, setForm] = useState(initialForm);
   const [floors, setFloors] = useState([]);
+  const [flats, setFlats] = useState([]);
   const [errors, setErrors] = useState({});
   const [isLoadingFloors, setIsLoadingFloors] = useState(false);
+  const [isLoadingFlats, setIsLoadingFlats] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState("");
 
@@ -46,26 +58,62 @@ export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
         throw new Error(response.data.message || "Unable to load floors.");
       }
 
-      const items = response.data?.data?.items;
+      const items =
+        response.data?.data?.items || response.data?.items || [];
 
       if (!Array.isArray(items)) {
         throw new Error("The server returned an invalid floors response.");
       }
 
       setFloors(items);
+
+      if (preselectedFloorId) {
+        setForm((prev) => ({ ...prev, floorId: preselectedFloorId }));
+      }
     } catch (error) {
       console.error("[Add Room] Floor loading failed:", error);
       setApiError(error.message || "Unable to load floors. Please try again.");
     } finally {
       setIsLoadingFloors(false);
     }
-  }, []);
+  }, [preselectedFloorId]);
+
+  const loadFlats = useCallback(async (floorIdToFetch) => {
+    if (!floorIdToFetch) {
+      setFlats([]);
+      return;
+    }
+
+    setIsLoadingFlats(true);
+    try {
+      const response = await apiClient.get(
+        `/api/management?type=flat&floorId=${floorIdToFetch}`
+      );
+      const items =
+        response.data?.data?.items || response.data?.items || [];
+      const flatList = Array.isArray(items) ? items : [];
+      setFlats(flatList);
+
+      if (preselectedFlatId && flatList.some((f) => (f.id || f._id) === preselectedFlatId)) {
+        setForm((prev) => ({ ...prev, flatId: preselectedFlatId }));
+      } else if (flatList.length === 1) {
+        setForm((prev) => ({ ...prev, flatId: flatList[0].id || flatList[0]._id }));
+      }
+    } catch (error) {
+      console.error("[Add Room] Flat loading failed:", error);
+    } finally {
+      setIsLoadingFlats(false);
+    }
+  }, [preselectedFlatId]);
 
   useEffect(() => {
     if (isOpen) {
       loadFloors();
+      if (preselectedFloorId) {
+        loadFlats(preselectedFloorId);
+      }
     }
-  }, [isOpen, loadFloors]);
+  }, [isOpen, loadFloors, loadFlats, preselectedFloorId]);
 
   const handleClose = useCallback(() => {
     if (isSubmitting) return;
@@ -73,16 +121,29 @@ export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
     setForm(initialForm);
     setErrors({});
     setApiError("");
+    setFlats([]);
     onClose();
   }, [isSubmitting, onClose]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
 
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+    setForm((previous) => {
+      const updated = {
+        ...previous,
+        [name]: value,
+      };
+
+      if (name === "floorId") {
+        updated.flatId = "";
+      }
+
+      return updated;
+    });
+
+    if (name === "floorId") {
+      loadFlats(value);
+    }
 
     setErrors((previous) => ({
       ...previous,
@@ -98,6 +159,10 @@ export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
 
     if (!form.floorId) {
       nextErrors.floorId = "Please select a floor.";
+    }
+
+    if (!form.flatId) {
+      nextErrors.flatId = "Please select a flat inside this floor.";
     }
 
     if (!form.roomNumber.trim()) {
@@ -127,10 +192,10 @@ export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
     setIsSubmitting(true);
     setApiError("");
 
-    // Matches the room payload provided for your backend.
     const payload = {
       type: "room",
       floorId: form.floorId,
+      flatId: form.flatId || undefined,
       roomNumber: form.roomNumber.trim(),
       capacity: Number(form.capacity),
       description: form.description.trim(),
@@ -159,7 +224,7 @@ export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
     } catch (error) {
       console.error("[Add Room] Creation failed:", error);
       setApiError(
-        error.message || "Unable to create the room. Please try again.",
+        error.message || "Unable to create the room. Please try again."
       );
     } finally {
       setIsSubmitting(false);
@@ -179,13 +244,13 @@ export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
       isOpen={isOpen}
       onClose={handleClose}
       title="Add New Room"
-      subtitle="Assign a room to one of your existing floors."
+      subtitle="Create a room inside a flat on your property."
       maxWidth="max-w-2xl"
       fullScreenMobile
     >
       <form onSubmit={handleSubmit} noValidate>
         <div className="space-y-6">
-          {/* Intro */}
+          {/* Header Panel */}
           <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-5">
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-700 text-white shadow-lg shadow-emerald-900/10">
@@ -194,14 +259,13 @@ export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
 
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">
-                  Property configuration
+                  Property Hierarchy: Step 3
                 </p>
                 <h4 className="mt-1 text-lg font-bold text-slate-900">
-                  Room information
+                  Room Configuration
                 </h4>
                 <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Select a floor, enter the room number, and specify the maximum
-                  occupancy.
+                  Select a floor, pick a flat inside that floor, and specify room number and bed capacity.
                 </p>
               </div>
             </div>
@@ -214,7 +278,7 @@ export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
                 htmlFor="room-floor"
                 className="text-sm font-semibold text-slate-700"
               >
-                Select Floor <span className="text-red-500">*</span>
+                1. Select Floor <span className="text-red-500">*</span>
               </label>
 
               <button
@@ -227,7 +291,7 @@ export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
                   size={13}
                   className={isLoadingFloors ? "animate-spin" : ""}
                 />
-                Refresh
+                Refresh Floors
               </button>
             </div>
 
@@ -255,7 +319,7 @@ export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
                 </option>
 
                 {floors.map((floor) => (
-                  <option key={floor.id} value={floor.id}>
+                  <option key={floor.id || floor._id} value={floor.id || floor._id}>
                     {floor.name} — Floor {floor.floorNumber}
                   </option>
                 ))}
@@ -265,17 +329,88 @@ export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
             {errors.floorId && (
               <p className="mt-1.5 text-xs text-red-600">{errors.floorId}</p>
             )}
+          </div>
 
-            {!isLoadingFloors && floors.length === 0 && (
-              <p className="mt-2 text-xs text-amber-700">
-                Create a floor first, or refresh to try loading floors again.
-              </p>
+          {/* Flat dropdown */}
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <label
+                htmlFor="room-flat"
+                className="text-sm font-semibold text-slate-700"
+              >
+                2. Select Flat <span className="text-red-500">*</span>
+              </label>
+
+              {form.floorId && (
+                <button
+                  type="button"
+                  onClick={() => loadFlats(form.floorId)}
+                  disabled={isLoadingFlats || isSubmitting}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 disabled:opacity-50"
+                >
+                  <RefreshCw
+                    size={13}
+                    className={isLoadingFlats ? "animate-spin" : ""}
+                  />
+                  Refresh Flats
+                </button>
+              )}
+            </div>
+
+            <div className="relative">
+              <Home
+                size={19}
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+
+              <select
+                id="room-flat"
+                name="flatId"
+                value={form.flatId}
+                onChange={handleChange}
+                disabled={!form.floorId || isLoadingFlats || isSubmitting}
+                aria-invalid={Boolean(errors.flatId)}
+                className={`${inputClass(Boolean(errors.flatId))} pl-11`}
+              >
+                <option value="">
+                  {!form.floorId
+                    ? "Select a floor first"
+                    : isLoadingFlats
+                      ? "Loading flats..."
+                      : flats.length === 0
+                        ? "No flats found on this floor"
+                        : "Choose a flat"}
+                </option>
+
+                {flats.map((flat) => (
+                  <option key={flat.id || flat._id} value={flat.id || flat._id}>
+                    {flat.flatNumber || flat.name} {flat.description ? `(${flat.description})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {errors.flatId && (
+              <p className="mt-1.5 text-xs text-red-600">{errors.flatId}</p>
             )}
 
-            {form.floorId && (
-              <p className="mt-2 text-xs text-emerald-700">
-                Floor selected. Its ID will be sent with the room request.
-              </p>
+            {form.floorId && !isLoadingFlats && flats.length === 0 && (
+              <div className="mt-2 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                <span>No flats created on this floor yet. You must create a flat first.</span>
+                {onOpenAddFlat && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenAddFlat(form.floorId);
+                    }}
+                    className="inline-flex items-center gap-1 font-semibold text-emerald-800 underline hover:text-emerald-900"
+                  >
+                    <Plus size={13} />
+                    Create Flat
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
@@ -285,7 +420,7 @@ export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
               htmlFor="room-number"
               className="mb-2 block text-sm font-semibold text-slate-700"
             >
-              Room Number <span className="text-red-500">*</span>
+              3. Room Number / Name <span className="text-red-500">*</span>
             </label>
 
             <div className="relative">
@@ -301,7 +436,7 @@ export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
                 autoComplete="off"
                 value={form.roomNumber}
                 onChange={handleChange}
-                placeholder="e.g. 102"
+                placeholder="e.g. 101-A, Room 1, Master Bedroom"
                 maxLength={30}
                 disabled={isSubmitting}
                 aria-invalid={Boolean(errors.roomNumber)}
@@ -320,7 +455,7 @@ export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
               htmlFor="room-capacity"
               className="mb-2 block text-sm font-semibold text-slate-700"
             >
-              Room Capacity <span className="text-red-500">*</span>
+              4. Room Capacity (Beds) <span className="text-red-500">*</span>
             </label>
 
             <div className="relative">
@@ -337,7 +472,7 @@ export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
                 step="1"
                 value={form.capacity}
                 onChange={handleChange}
-                placeholder="e.g. 5"
+                placeholder="e.g. 2"
                 disabled={isSubmitting}
                 aria-invalid={Boolean(errors.capacity)}
                 className={`${inputClass(Boolean(errors.capacity))} pl-11`}
@@ -374,66 +509,61 @@ export default function AddRoomModal({ isOpen, onClose, onRoomCreated }) {
                 rows={3}
                 value={form.description}
                 onChange={handleChange}
-                placeholder="e.g. Room 102"
+                placeholder="e.g. Attached washroom, East window view"
                 maxLength={500}
                 disabled={isSubmitting}
                 aria-invalid={Boolean(errors.description)}
-                className={`${inputClass(Boolean(errors.description))} resize-y pl-11 leading-6`}
+                className={`${inputClass(Boolean(errors.description))} pl-11`}
               />
             </div>
 
-            <div className="mt-1.5 flex justify-between gap-3">
+            <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-slate-400">
               {errors.description ? (
-                <p className="text-xs text-red-600">{errors.description}</p>
-              ) : (
-                <p className="text-xs text-slate-400">
-                  Add useful information about this room.
+                <p className="font-medium text-red-600">
+                  {errors.description}
                 </p>
+              ) : (
+                <span>Brief details about room furnishings or notes.</span>
               )}
-
-              <span className="shrink-0 text-xs tabular-nums text-slate-400">
-                {form.description.length}/500
-              </span>
+              <span>{form.description.length}/500</span>
             </div>
           </div>
 
-          {/* API error */}
+          {/* Backend Error Message */}
           {apiError && (
             <div
               role="alert"
-              className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4"
+              className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
             >
-              <AlertCircle size={19} className="mt-0.5 shrink-0 text-red-600" />
-              <p className="text-sm leading-5 text-red-700">{apiError}</p>
+              <AlertCircle size={19} className="mt-0.5 shrink-0 text-red-500" />
+              <div className="min-w-0 flex-1 leading-relaxed">{apiError}</div>
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+          {/* Action buttons */}
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-end">
             <button
               type="button"
               onClick={handleClose}
               disabled={isSubmitting}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-100 disabled:opacity-50"
             >
-              <X size={17} />
               Cancel
             </button>
 
             <button
               type="submit"
-              disabled={isSubmitting || isLoadingFloors || floors.length === 0}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSubmitting}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-800 px-6 text-sm font-semibold text-white shadow-lg shadow-emerald-900/10 transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-200 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? (
                 <>
                   <LoaderCircle size={18} className="animate-spin" />
-                  Creating Room...
+                  <span>Creating Room...</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 size={18} />
-                  Create Room
+                  <span>Create Room</span>
                   <ArrowRight size={17} />
                 </>
               )}

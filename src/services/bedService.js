@@ -50,6 +50,24 @@ export const bedService = {
   },
 
   // ==========================================
+  // FLAT GET APIs
+  // ==========================================
+
+  /**
+   * Fetch all flats or flats filtered by floor.
+   * GET /api/management?type=flat
+   * GET /api/management?type=flat&floorId=FLOOR_ID
+   */
+  async getAllFlats({ floorId } = {}) {
+    return apiClient.get(BED_ENDPOINTS.MANAGEMENT, {
+      params: {
+        type: "flat",
+        ...(floorId ? { floorId } : {}),
+      },
+    });
+  },
+
+  // ==========================================
   // ROOM GET APIs
   // ==========================================
 

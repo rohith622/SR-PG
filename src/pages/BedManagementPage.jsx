@@ -4,6 +4,7 @@ import apiClient from "../services/apiClient";
 import {
   BedDouble,
   Building2,
+  Home,
   Users,
   Search,
   ChevronRight,
@@ -141,16 +142,23 @@ function RoomCard({ room, selected, onClick }) {
       }`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span
-          className={`text-sm font-bold ${
-            counts.available === 0 && counts.maintenance === 0
-              ? "text-rose-700"
-              : "text-slate-900"
-          }`}
-        >
-          {room.id}
-        </span>
-        <ChevronRight size={16} className="text-slate-400" />
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span
+            className={`text-sm font-bold ${
+              counts.available === 0 && counts.maintenance === 0
+                ? "text-rose-700"
+                : "text-slate-900"
+            }`}
+          >
+            {room.id}
+          </span>
+          {room.flatNumber && (
+            <span className="truncate rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 border border-emerald-100">
+              Flat {room.flatNumber}
+            </span>
+          )}
+        </div>
+        <ChevronRight size={16} className="text-slate-400 shrink-0" />
       </div>
 
       <p
@@ -679,10 +687,150 @@ function EditFloorModal({ floor, onClose, onSave }) {
   );
 }
 
-function EditRoomModal({ room, floors, onClose, onSave }) {
+function EditFlatModal({ flat, floors, onClose, onSave }) {
+  const [form, setForm] = useState({
+    flatNumber: flat?.flatNumber || flat?.name || "",
+    floorId: flat?.floorId || floors[0]?.id || floors[0]?._id || "",
+    description: flat?.description || "",
+  });
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (!flat) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.flatNumber.trim()) {
+      setError("Please enter a flat number or name.");
+      return;
+    }
+    setIsSubmitting(true);
+    setError("");
+    try {
+      await onSave({
+        flatNumber: form.flatNumber.trim(),
+        name: form.flatNumber.trim(),
+        floorId: form.floorId,
+        description: form.description.trim(),
+      });
+    } catch (err) {
+      setError(
+        err?.response?.data?.message || err?.message || "Failed to update flat."
+      );
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0b241b]/60 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl border border-[#e9e2d4] bg-[#fffefa] p-5 shadow-2xl sm:p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between border-b border-[#eee8dd] pb-3">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Edit Flat</h2>
+            <p className="text-xs text-slate-500">
+              {flat.flatNumber || flat.name}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {error && (
+          <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              Floor
+            </label>
+            <select
+              value={form.floorId}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, floorId: e.target.value }))
+              }
+              className="mt-1.5 w-full rounded-xl border border-[#e5dfd3] bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-emerald-700"
+            >
+              {floors.map((fl) => (
+                <option key={fl.id || fl._id} value={fl.id || fl._id}>
+                  {fl.name} (Floor {fl.floorNumber})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              Flat Number / Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.flatNumber}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, flatNumber: e.target.value }))
+              }
+              placeholder="e.g. Flat 101"
+              className="mt-1.5 w-full rounded-xl border border-[#e5dfd3] bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-emerald-700"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              Description
+            </label>
+            <textarea
+              rows={3}
+              value={form.description}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, description: e.target.value }))
+              }
+              placeholder="Optional notes about the flat"
+              className="mt-1.5 w-full rounded-xl border border-[#e5dfd3] bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-emerald-700"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded-xl bg-emerald-900 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-800"
+            >
+              {isSubmitting ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function EditRoomModal({ room, floors, flats = [], onClose, onSave }) {
   const [form, setForm] = useState({
     roomNumber: room?.roomNumber || room?.id || "",
     floorId: room?.floorId || floors[0]?.id || floors[0]?._id || "",
+    flatId: room?.flatId || "",
     capacity: String(room?.capacity || room?.beds?.length || 2),
     description: room?.description || "",
   });
@@ -715,6 +863,7 @@ function EditRoomModal({ room, floors, onClose, onSave }) {
       await onSave({
         roomNumber: form.roomNumber.trim(),
         floorId: form.floorId,
+        flatId: form.flatId || null,
         capacity: cap,
         description: form.description.trim(),
       });
@@ -793,6 +942,28 @@ function EditRoomModal({ room, floors, onClose, onSave }) {
                     {getFloorLabel(f.floorNumber)}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700">
+                Flat (Optional)
+              </label>
+              <select
+                value={form.flatId}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, flatId: e.target.value }))
+                }
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs sm:text-sm outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
+              >
+                <option value="">No Flat / Standalone</option>
+                {flats
+                  .filter((fl) => String(fl.floorId) === String(form.floorId))
+                  .map((fl) => (
+                    <option key={fl.id || fl._id} value={fl.id || fl._id}>
+                      {fl.flatNumber || fl.name}
+                    </option>
+                  ))}
               </select>
             </div>
 
@@ -1602,14 +1773,17 @@ function DeleteConfirmModal({
 
 export default function BedManagement({
   onOpenAddFloor,
+  onOpenAddFlat,
   onOpenAddRoom,
   onOpenAddBed,
   initialSelectedRoomId,
 }) {
   const [rooms, setRooms] = useState([]);
   const [floors, setFloors] = useState([]);
-  const [selectedFloor, setSelectedFloor] = useState("All Floors");
-  const [selectedFloorId, setSelectedFloorId] = useState("all");
+  const [flats, setFlats] = useState([]);
+  const [selectedFloor, setSelectedFloor] = useState("");
+  const [selectedFloorId, setSelectedFloorId] = useState("");
+  const [selectedFlatId, setSelectedFlatId] = useState("");
   const [selectedRoomId, setSelectedRoomId] = useState(
     initialSelectedRoomId || "",
   );
@@ -1622,12 +1796,14 @@ export default function BedManagement({
 
   // Edit states
   const [editingFloor, setEditingFloor] = useState(null);
+  const [editingFlat, setEditingFlat] = useState(null);
   const [editingRoom, setEditingRoom] = useState(null);
   const [editingBed, setEditingBed] = useState(null);
   const [editingTenant, setEditingTenant] = useState(null);
 
   // Delete states
   const [deletingFloor, setDeletingFloor] = useState(null);
+  const [deletingFlat, setDeletingFlat] = useState(null);
   const [deletingRoom, setDeletingRoom] = useState(null);
   const [deletingBed, setDeletingBed] = useState(null);
   const [deletingTenant, setDeletingTenant] = useState(null);
@@ -1645,8 +1821,11 @@ export default function BedManagement({
     setError("");
 
     try {
-      const [floorsRes, roomsRes, bedsRes, tenantsRes] = await Promise.all([
+      const [floorsRes, flatsRes, roomsRes, bedsRes, tenantsRes] = await Promise.all([
         apiClient.get("/api/management?type=floor"),
+        apiClient
+          .get("/api/management?type=flat")
+          .catch(() => ({ data: { items: [] } })),
         apiClient.get("/api/management?type=room"),
         apiClient.get("/api/management?type=bed"),
         apiClient.get("/api/tenants"),
@@ -1654,6 +1833,8 @@ export default function BedManagement({
 
       const floorsData =
         floorsRes?.data?.data?.items || floorsRes?.data?.items || [];
+      const flatsData =
+        flatsRes?.data?.data?.items || flatsRes?.data?.items || [];
       const roomsData =
         roomsRes?.data?.data?.items || roomsRes?.data?.items || [];
       const bedsData = bedsRes?.data?.data?.items || bedsRes?.data?.items || [];
@@ -1665,6 +1846,14 @@ export default function BedManagement({
         [];
 
       setFloors(floorsData);
+      setFlats(flatsData);
+
+      // Flat map by flatId
+      const flatMap = {};
+      flatsData.forEach((fl) => {
+        const id = fl.id || fl._id;
+        flatMap[String(id)] = fl;
+      });
 
       // Floor map by floorId using floorNumber to prevent duplicates
       const floorMap = {};
@@ -1756,6 +1945,10 @@ export default function BedManagement({
             ? getFloorLabel(r.floorNumber)
             : "1st Floor");
         const beds = bedsByRoomId[String(rid)] || [];
+        const flatObj = r.flatId ? flatMap[String(r.flatId)] : null;
+        const flatNumber = flatObj
+          ? flatObj.flatNumber || flatObj.name
+          : r.flatNumber || "";
 
         return {
           id: r.roomNumber || String(rid),
@@ -1764,6 +1957,9 @@ export default function BedManagement({
           floorId: r.floorId,
           floorNumber: r.floorNumber,
           floor: floorName,
+          flatId: r.flatId || (flatObj ? flatObj.id || flatObj._id : null),
+          flatNumber,
+          flatName: flatNumber,
           capacity: r.capacity || beds.length || 1,
           description: r.description || "",
           beds,
@@ -1817,61 +2013,123 @@ export default function BedManagement({
       }
     }
 
-    return [
-      { id: "all", label: "All Floors", floorNumber: "all" },
-      ...uniqueFloors.map((f) => ({
-        id: f.id || f._id,
-        label: getFloorLabel(f.floorNumber),
-        floorNumber: f.floorNumber,
-        raw: f,
-      })),
-    ];
+    return uniqueFloors.map((f) => ({
+      id: String(f.id || f._id),
+      label: getFloorLabel(f.floorNumber),
+      floorNumber: f.floorNumber,
+      raw: f,
+    }));
   }, [floors]);
 
-  const roomSections = useMemo(() => {
-    if (selectedFloor === "All Floors") {
-      const labels = floorOptions
-        .filter((floor) => floor.id !== "all")
-        .map((floor) => floor.label);
+  const floorDropdownOptions = useMemo(() => {
+    return [
+      ...floorOptions,
+      { id: "all", label: "All Floors", floorNumber: "all" },
+    ];
+  }, [floorOptions]);
 
-      if (labels.length > 0) {
-        return labels;
+  // Default select first floor when floors are loaded
+  useEffect(() => {
+    if (floorOptions.length > 0) {
+      const isExistingValid = floorOptions.some((f) => f.id === selectedFloorId);
+      if (!isExistingValid && selectedFloorId !== "all") {
+        const firstFloor = floorOptions[0];
+        setSelectedFloorId(firstFloor.id);
+        setSelectedFloor(firstFloor.label);
       }
-
-      return Array.from(new Set(rooms.map((r) => r.floor)));
+    } else if (floors.length === 0) {
+      setSelectedFloorId("all");
+      setSelectedFloor("All Floors");
     }
+  }, [floorOptions, selectedFloorId, floors.length]);
 
-    return [selectedFloor];
-  }, [selectedFloor, floorOptions, rooms]);
-
-  const handleFloorChange = (floor) => {
-    const label = typeof floor === "object" ? floor.label : floor;
-    const id =
-      typeof floor === "object"
-        ? floor.id
-        : floorOptions.find((f) => f.label === floor)?.id || "all";
-
-    setSelectedFloor(label);
-    setSelectedFloorId(id);
-
-    const firstRoom = rooms.find(
-      (room) => id === "all" || room.floor === label || room.floorId === id,
+  // Flats on the currently selected floor
+  const currentFloorFlats = useMemo(() => {
+    if (!selectedFloorId || selectedFloorId === "all") {
+      return flats;
+    }
+    return flats.filter(
+      (fl) => String(fl.floorId) === String(selectedFloorId),
     );
+  }, [flats, selectedFloorId]);
 
-    if (firstRoom) {
-      setSelectedRoomId(firstRoom.id);
+  // Default select first flat of the selected floor
+  useEffect(() => {
+    if (currentFloorFlats.length > 0) {
+      const isExistingValid = currentFloorFlats.some(
+        (fl) => String(fl.id || fl._id) === String(selectedFlatId),
+      );
+      if (!isExistingValid && selectedFlatId !== "all") {
+        setSelectedFlatId(String(currentFloorFlats[0].id || currentFloorFlats[0]._id));
+      }
+    } else {
+      setSelectedFlatId("");
+    }
+  }, [currentFloorFlats, selectedFlatId]);
+
+  const handleFloorSelectChange = (newFloorId) => {
+    setSelectedFloorId(newFloorId);
+    if (newFloorId === "all") {
+      setSelectedFloor("All Floors");
+      setSelectedFlatId("all");
+    } else {
+      const foundFloor = floorOptions.find((f) => f.id === newFloorId);
+      setSelectedFloor(foundFloor?.label || "Floor");
+      const floorFlats = flats.filter((fl) => String(fl.floorId) === String(newFloorId));
+      if (floorFlats.length > 0) {
+        setSelectedFlatId(String(floorFlats[0].id || floorFlats[0]._id));
+      } else {
+        setSelectedFlatId("");
+      }
     }
   };
 
+  const handleFlatSelectChange = (newFlatId) => {
+    setSelectedFlatId(newFlatId);
+  };
+
+  const floorMap = useMemo(() => {
+    const map = {};
+    floors.forEach((f) => {
+      const id = String(f.id || f._id);
+      map[id] = getFloorLabel(f.floorNumber);
+    });
+    return map;
+  }, [floors]);
+
+  const currentFloorObj = useMemo(() => {
+    if (!selectedFloorId || selectedFloorId === "all") return null;
+    return (
+      floors.find((f) => String(f.id || f._id) === String(selectedFloorId)) ||
+      null
+    );
+  }, [floors, selectedFloorId]);
+
+  const displayedFlats = useMemo(() => {
+    if (selectedFlatId && selectedFlatId !== "all") {
+      return currentFloorFlats.filter(
+        (fl) => String(fl.id || fl._id) === String(selectedFlatId),
+      );
+    }
+    return currentFloorFlats;
+  }, [currentFloorFlats, selectedFlatId]);
+
   const visibleRooms = useMemo(() => {
     return rooms.filter((room) => {
+      // 1. Floor match
       const matchesFloor =
+        selectedFloorId === "all" ||
         selectedFloor === "All Floors" ||
         room.floor === selectedFloor ||
-        (selectedFloorId &&
-          selectedFloorId !== "all" &&
-          room.floorId === selectedFloorId);
+        (selectedFloorId && String(room.floorId) === String(selectedFloorId));
 
+      // 2. Flat match
+      let matchesFlat = true;
+      if (selectedFlatId && selectedFlatId !== "all") {
+        matchesFlat = String(room.flatId) === String(selectedFlatId);
+      }
+
+      // 3. Search match
       const matchesSearch =
         !search.trim() ||
         String(room.id).toLowerCase().includes(search.toLowerCase()) ||
@@ -1879,13 +2137,41 @@ export default function BedManagement({
           String(room.roomNumber)
             .toLowerCase()
             .includes(search.toLowerCase())) ||
+        (room.flatNumber &&
+          String(room.flatNumber)
+            .toLowerCase()
+            .includes(search.toLowerCase())) ||
         room.beds.some((bed) =>
           bed.tenant?.name?.toLowerCase().includes(search.toLowerCase()),
         );
 
-      return matchesFloor && matchesSearch;
+      return matchesFloor && matchesFlat && matchesSearch;
     });
-  }, [rooms, selectedFloor, selectedFloorId, search]);
+  }, [rooms, selectedFloor, selectedFloorId, selectedFlatId, search]);
+
+  const standaloneRooms = useMemo(() => {
+    if (selectedFlatId && selectedFlatId !== "all") {
+      return [];
+    }
+    const currentFlatsIds = new Set(
+      currentFloorFlats.map((fl) => String(fl.id || fl._id)),
+    );
+    return visibleRooms.filter(
+      (room) => !room.flatId || !currentFlatsIds.has(String(room.flatId)),
+    );
+  }, [currentFloorFlats, visibleRooms, selectedFlatId]);
+
+  // Keep selected room in sync with visible rooms
+  useEffect(() => {
+    if (visibleRooms.length > 0) {
+      const isCurrentVisible = visibleRooms.some(
+        (r) => r.id === selectedRoomId || r.roomId === selectedRoomId,
+      );
+      if (!isCurrentVisible) {
+        setSelectedRoomId(visibleRooms[0].id);
+      }
+    }
+  }, [visibleRooms, selectedRoomId]);
 
   const selectedRoom = useMemo(() => {
     return (
@@ -1927,6 +2213,28 @@ export default function BedManagement({
     setSelectedFloorId("all");
   };
 
+  // 1.5 FLAT
+  const handleUpdateFlat = async (flatData) => {
+    const fid = editingFlat?.id || editingFlat?._id;
+    if (!fid) return;
+    await apiClient.put(`/api/management/${fid}?type=flat`, {
+      flatNumber: flatData.flatNumber,
+      name: flatData.name || flatData.flatNumber,
+      floorId: flatData.floorId,
+      description: flatData.description,
+    });
+    await loadData();
+    setEditingFlat(null);
+  };
+
+  const handleDeleteFlat = async () => {
+    const fid = deletingFlat?.id;
+    if (!fid) return;
+    await apiClient.delete(`/api/management/${fid}?type=flat`);
+    await loadData();
+    setDeletingFlat(null);
+  };
+
   // 2. ROOM
   const handleUpdateRoom = async (roomData) => {
     const rid = editingRoom?.roomId || editingRoom?.id;
@@ -1934,6 +2242,7 @@ export default function BedManagement({
     await apiClient.put(`/api/management/${rid}?type=room`, {
       roomNumber: roomData.roomNumber,
       floorId: roomData.floorId,
+      flatId: roomData.flatId || null,
       capacity: roomData.capacity,
       description: roomData.description,
     });
@@ -2079,7 +2388,7 @@ export default function BedManagement({
           </div>
 
           {/* Action buttons */}
-          <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
             <button
               type="button"
               onClick={onOpenAddFloor}
@@ -2091,7 +2400,21 @@ export default function BedManagement({
 
             <button
               type="button"
-              onClick={onOpenAddRoom}
+              onClick={() => onOpenAddFlat?.(selectedFloorId !== "all" ? selectedFloorId : "")}
+              className="inline-flex min-h-9 items-center justify-center gap-1 rounded-md border border-emerald-200 bg-white px-2 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 focus:outline-none sm:min-h-11 sm:gap-2 sm:rounded-lg sm:px-4 sm:text-sm"
+            >
+              <Home size={15} />
+              <span>Add Flat</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                onOpenAddRoom?.(
+                  selectedFloorId !== "all" ? selectedFloorId : "",
+                  selectedFlatId !== "all" ? selectedFlatId : "",
+                )
+              }
               className="inline-flex min-h-9 items-center justify-center gap-1 rounded-md border border-emerald-200 bg-white px-2 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 focus:outline-none sm:min-h-11 sm:gap-2 sm:rounded-lg sm:px-4 sm:text-sm"
             >
               <Plus size={15} />
@@ -2111,35 +2434,132 @@ export default function BedManagement({
       </header>
 
       <main className="mx-auto max-w-[1800px] space-y-5 p-4 sm:p-4 lg:p-4">
-        {/* Floor Filters and Summary */}
-        <section className="space-y-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            {/* Floor label and buttons */}
-            <div className="min-w-0">
-              <span className="mb-2 block text-xs font-semibold text-slate-700 sm:text-sm">
-                Floor
-              </span>
-
-              <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto pb-1 sm:gap-2">
-                {floorOptions.map((floor) => (
-                  <button
-                    key={floor.id}
-                    type="button"
-                    onClick={() => handleFloorChange(floor)}
-                    className={`shrink-0 rounded-md border px-3 py-2 text-[11px] font-semibold transition-colors sm:rounded-lg sm:px-4 sm:py-2.5 sm:text-xs ${
-                      selectedFloor === floor.label
-                        ? "border-emerald-900 bg-emerald-900 text-white"
-                        : "border-[#e5dfd3] bg-white text-slate-600 hover:border-emerald-700"
-                    }`}
+        {/* Floor & Flat Filter Dropdowns and Bed Status Legend */}
+        <section className="rounded-2xl border border-[#e9e2d4] bg-white p-3.5 shadow-[0_2px_12px_-8px_rgba(28,45,35,0.12)] sm:p-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            {/* Filter Dropdowns */}
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+              {/* Floor Dropdown */}
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="bed-floor-select"
+                  className="flex items-center gap-1.5 text-xs font-bold text-slate-700"
+                >
+                  <Building2 size={16} className="text-emerald-800" />
+                  <span>Floor:</span>
+                </label>
+                <div className="relative">
+                  <select
+                    id="bed-floor-select"
+                    value={selectedFloorId}
+                    onChange={(e) => handleFloorSelectChange(e.target.value)}
+                    className="h-10 min-w-[150px] appearance-none rounded-xl border border-[#e5dfd3] bg-[#faf8f4] pl-3.5 pr-8 text-xs font-semibold text-slate-800 shadow-sm transition hover:border-emerald-700 focus:border-emerald-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-800/20 sm:min-w-[170px] sm:text-sm"
                   >
-                    {floor.label}
+                    {floorDropdownOptions.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={15}
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500"
+                  />
+                </div>
+
+                {/* Edit / Delete Floor controls */}
+                {selectedFloorId !== "all" && currentFloorObj && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      title={`Edit ${selectedFloor}`}
+                      onClick={() => setEditingFloor(currentFloorObj)}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      title={`Delete ${selectedFloor}`}
+                      onClick={() =>
+                        setDeletingFloor({
+                          id: currentFloorObj.id || currentFloorObj._id,
+                          name: selectedFloor,
+                          warning:
+                            currentFloorFlats.length > 0
+                              ? `This floor currently has ${currentFloorFlats.length} flat(s). You must delete the flats first.`
+                              : undefined,
+                        })
+                      }
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-red-400 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Flat Dropdown */}
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="bed-flat-select"
+                  className="flex items-center gap-1.5 text-xs font-bold text-slate-700"
+                >
+                  <Home size={16} className="text-emerald-800" />
+                  <span>Flat:</span>
+                </label>
+                <div className="relative">
+                  <select
+                    id="bed-flat-select"
+                    value={selectedFlatId}
+                    onChange={(e) => handleFlatSelectChange(e.target.value)}
+                    disabled={currentFloorFlats.length === 0}
+                    className="h-10 min-w-[160px] appearance-none rounded-xl border border-[#e5dfd3] bg-[#faf8f4] pl-3.5 pr-8 text-xs font-semibold text-slate-800 shadow-sm transition hover:border-emerald-700 focus:border-emerald-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-800/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 sm:min-w-[180px] sm:text-sm"
+                  >
+                    {currentFloorFlats.length > 0 ? (
+                      <>
+                        {currentFloorFlats.map((fl) => {
+                          const fid = String(fl.id || fl._id);
+                          const displayName = fl.flatNumber || fl.name;
+                          const extraName =
+                            fl.name && fl.name !== fl.flatNumber
+                              ? ` · ${fl.name}`
+                              : "";
+                          return (
+                            <option key={fid} value={fid}>
+                              {displayName}
+                              {extraName}
+                            </option>
+                          );
+                        })}
+                        <option value="all">All Flats on Floor</option>
+                      </>
+                    ) : (
+                      <option value="">No flats on this floor</option>
+                    )}
+                  </select>
+                  <ChevronDown
+                    size={15}
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500"
+                  />
+                </div>
+
+                {/* Quick Add Flat if floor has no flats */}
+                {selectedFloorId !== "all" && currentFloorFlats.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenAddFlat?.(selectedFloorId)}
+                    className="inline-flex items-center gap-1 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/70 px-2.5 py-2 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                  >
+                    <Plus size={13} />
+                    <span>Create Flat</span>
                   </button>
-                ))}
+                )}
               </div>
             </div>
 
             {/* Bed status legend */}
-            <div className="flex flex-wrap items-center justify-start gap-x-3 gap-y-1 sm:justify-end sm:pb-1">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-slate-100 pt-2 lg:border-t-0 lg:pt-0">
               <span className="text-[10px] font-semibold text-slate-500 sm:text-xs">
                 Bed Status:
               </span>
@@ -2184,100 +2604,214 @@ export default function BedManagement({
           </div>
         ) : (
           <div className="grid min-w-0 grid-cols-1 items-start gap-5 2xl:grid-cols-[minmax(0,1.4fr)_minmax(380px,0.85fr)]">
-            {/* Rooms by Floor */}
+            {/* Rooms based on selected Flat */}
             <div className="min-w-0 space-y-4">
-              {roomSections.map((floor) => {
-                const floorRooms = visibleRooms.filter(
-                  (room) => room.floor === floor,
-                );
-
-                if (!floorRooms.length) return null;
-
-                const floorCounts = getCounts(floorRooms);
-                const floorObj = floors.find(
-                  (f) =>
-                    getFloorLabel(f.floorNumber) === floor ||
-                    f.name === floor ||
-                    String(f.floorNumber) === floor,
-                );
-
-                return (
-                  <section
-                    key={floor}
-                    className="overflow-hidden rounded-2xl border border-[#e9e2d4] bg-white shadow-[0_4px_18px_-14px_rgba(28,45,35,0.18)]"
+              {floors.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#e9e2d4] bg-white p-10 text-center shadow-sm">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-800">
+                    <Building2 size={28} />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    No Floors Added Yet
+                  </h3>
+                  <p className="mt-1 max-w-md text-xs text-slate-500 sm:text-sm">
+                    Start setting up your property hierarchy. First create a floor, then add flats, rooms, and beds.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={onOpenAddFloor}
+                    className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-emerald-900 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-800"
                   >
-                    <div className="flex items-center justify-between gap-3 px-4 pb-4 pt-5 sm:px-5">
-                      <div>
-                        <h2 className="text-base font-bold text-slate-900">
-                          Rooms - {floor}
-                        </h2>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {floorCounts.rooms} Rooms · {floorCounts.beds} Beds
-                        </p>
+                    <Plus size={15} />
+                    <span>Add First Floor</span>
+                  </button>
+                </div>
+              ) : currentFloorFlats.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#e9e2d4] bg-white p-10 text-center shadow-sm">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-800">
+                    <Home size={28} />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    No Flats on {selectedFloor || "this Floor"}
+                  </h3>
+                  <p className="mt-1 max-w-md text-xs text-slate-500 sm:text-sm">
+                    Create a flat on this floor to start organizing your rooms.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onOpenAddFlat?.(selectedFloorId !== "all" ? selectedFloorId : "")
+                    }
+                    className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-emerald-900 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-800"
+                  >
+                    <Plus size={15} />
+                    <span>Add Flat to {selectedFloor || "Floor"}</span>
+                  </button>
+                </div>
+              ) : (
+                displayedFlats.map((flat) => {
+                  const flatIdStr = String(flat.id || flat._id);
+                  const flatRooms = rooms
+                    .filter((room) => String(room.flatId) === flatIdStr)
+                    .filter((room) => {
+                      if (!search.trim()) return true;
+                      return (
+                        String(room.roomNumber || "")
+                          .toLowerCase()
+                          .includes(search.toLowerCase()) ||
+                        room.beds.some((b) =>
+                          b.tenant?.name?.toLowerCase().includes(search.toLowerCase()),
+                        )
+                      );
+                    });
+                  const flatCounts = getCounts(flatRooms);
+                  const floorLabel =
+                    floorMap[flat.floorId] ||
+                    floors.find(
+                      (f) => String(f.id || f._id) === String(flat.floorId),
+                    )?.name ||
+                    "Floor";
+
+                  return (
+                    <section
+                      key={flatIdStr}
+                      className="overflow-hidden rounded-2xl border border-[#e9e2d4] bg-white shadow-[0_4px_18px_-14px_rgba(28,45,35,0.18)]"
+                    >
+                      {/* Flat Header */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eee8dd] bg-[#fdfcf9] px-4 py-4 sm:px-5">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-800 text-white shadow-sm">
+                            <Home size={18} />
+                          </div>
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h2 className="text-base font-bold text-slate-900">
+                                {flat.flatNumber || flat.name}
+                              </h2>
+                              {flat.name && flat.name !== flat.flatNumber && (
+                                <span className="text-xs font-medium text-slate-500">
+                                  ({flat.name})
+                                </span>
+                              )}
+                              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
+                                {floorLabel}
+                              </span>
+                              <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700">
+                                {flatRooms.length} Rooms · {flatCounts.beds} Beds
+                              </span>
+                            </div>
+                            {flat.description && (
+                              <p className="mt-0.5 text-xs text-slate-500">
+                                {flat.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            title={`Edit ${flat.flatNumber || flat.name}`}
+                            onClick={() => setEditingFlat(flat)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            title={`Delete ${flat.flatNumber || flat.name}`}
+                            onClick={() =>
+                              setDeletingFlat({
+                                id: flat.id || flat._id,
+                                name: flat.flatNumber || flat.name,
+                                warning:
+                                  flatRooms.length > 0
+                                    ? `This flat currently has ${flatRooms.length} room(s). You must remove or reassign rooms first.`
+                                    : undefined,
+                              })
+                            }
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-red-400 hover:bg-red-50 hover:text-red-700"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onOpenAddRoom?.(flat.floorId, flat.id || flat._id)
+                            }
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-800"
+                          >
+                            <Plus size={13} />
+                            <span>Add Room</span>
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        {floorObj && (
-                          <div className="flex items-center gap-1">
+                      {/* Rooms Grid for this Flat */}
+                      <div className="p-4 sm:p-5">
+                        {flatRooms.length > 0 ? (
+                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                            {flatRooms.map((room) => (
+                              <RoomCard
+                                key={room.id}
+                                room={room}
+                                selected={room.id === selectedRoomId}
+                                onClick={() => {
+                                  setSelectedRoomId(room.id);
+                                  setShowRoomDetails(true);
+                                  setBedFilter("all");
+                                }}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="rounded-xl border border-dashed border-[#e9e2d4] bg-[#faf8f4] p-8 text-center">
+                            <p className="text-sm font-semibold text-slate-700">
+                              No rooms in {flat.flatNumber || flat.name} yet
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              Add rooms to this flat to start adding beds and assigning tenants.
+                            </p>
                             <button
                               type="button"
-                              title={`Edit ${floor}`}
-                              onClick={() => setEditingFloor(floorObj)}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
-                            >
-                              <Pencil size={13} />
-                            </button>
-                            <button
-                              type="button"
-                              title={`Delete ${floor}`}
                               onClick={() =>
-                                setDeletingFloor({
-                                  id: floorObj.id || floorObj._id,
-                                  name: floor,
-                                  warning:
-                                    floorCounts.rooms > 0
-                                      ? `This floor currently has ${floorCounts.rooms} room(s). You must remove or reassign rooms first.`
-                                      : undefined,
-                                })
+                                onOpenAddRoom?.(flat.floorId, flat.id || flat._id)
                               }
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-red-400 hover:bg-red-50 hover:text-red-700"
+                              className="mt-3 inline-flex items-center gap-1 rounded-lg bg-emerald-900 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-800"
                             >
-                              <Trash2 size={13} />
+                              <Plus size={13} />
+                              <span>Add Room to {flat.flatNumber || flat.name}</span>
                             </button>
                           </div>
                         )}
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleFloorChange(
-                              selectedFloor === floor ? "All Floors" : floor,
-                            )
-                          }
-                          className="flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50/70 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
-                        >
-                          View floor <ArrowUpRight size={14} />
-                        </button>
                       </div>
-                    </div>
+                    </section>
+                  );
+                })
+              )}
 
-                    <div className="grid grid-cols-2 gap-3 px-4 pb-5 sm:grid-cols-3 sm:px-5 xl:grid-cols-4">
-                      {floorRooms.map((room) => (
-                        <RoomCard
-                          key={room.id}
-                          room={room}
-                          selected={room.id === selectedRoomId}
-                          onClick={() => {
-                            setSelectedRoomId(room.id);
-                            setShowRoomDetails(true);
-                            setBedFilter("all");
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                );
-              })}
+              {/* Standalone rooms if any exist on this floor without flat */}
+              {standaloneRooms.length > 0 && (
+                <section className="overflow-hidden rounded-2xl border border-dashed border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Standalone Rooms (No Flat Assigned)
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                    {standaloneRooms.map((room) => (
+                      <RoomCard
+                        key={room.id}
+                        room={room}
+                        selected={room.id === selectedRoomId}
+                        onClick={() => {
+                          setSelectedRoomId(room.id);
+                          setShowRoomDetails(true);
+                          setBedFilter("all");
+                        }}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
 
               {visibleRooms.length === 0 && (
                 <div className="rounded-md border border-dashed border-slate-300 bg-white px-5 py-12 text-center">
@@ -2292,7 +2826,7 @@ export default function BedManagement({
                     type="button"
                     onClick={() => {
                       setSearch("");
-                      handleFloorChange("All Floors");
+                      handleFloorSelectChange("all");
                     }}
                     className="mt-4 text-sm font-semibold text-emerald-800 hover:underline"
                   >
@@ -2314,9 +2848,11 @@ export default function BedManagement({
                       </p>
                       <h2 className="mt-1 text-lg font-bold text-slate-900 sm:text-xl">
                         Room {selectedRoom.roomNumber || selectedRoom.id}
+                        {selectedRoom.flatNumber ? ` (Flat ${selectedRoom.flatNumber})` : ""}
                       </h2>
                       <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
-                        {selectedRoom.floor} · {selectedRoom.beds.length} Beds
+                        {selectedRoom.floor}
+                        {selectedRoom.flatNumber ? ` · Flat ${selectedRoom.flatNumber}` : ""} · {selectedRoom.beds.length} Beds
                         {selectedRoom.capacity
                           ? ` (Max ${selectedRoom.capacity})`
                           : ""}
@@ -2720,11 +3256,35 @@ export default function BedManagement({
         />
       )}
 
+      {/* Edit Flat Modal */}
+      {editingFlat && (
+        <EditFlatModal
+          flat={editingFlat}
+          floors={floors}
+          onClose={() => setEditingFlat(null)}
+          onSave={handleUpdateFlat}
+        />
+      )}
+
+      {/* Delete Flat Confirm Modal */}
+      {deletingFlat && (
+        <DeleteConfirmModal
+          isOpen={Boolean(deletingFlat)}
+          title="Delete Flat"
+          itemName={deletingFlat.name}
+          type="flat"
+          warning={deletingFlat.warning}
+          onClose={() => setDeletingFlat(null)}
+          onConfirm={handleDeleteFlat}
+        />
+      )}
+
       {/* Edit Room Modal */}
       {editingRoom && (
         <EditRoomModal
           room={editingRoom}
           floors={floors}
+          flats={flats}
           onClose={() => setEditingRoom(null)}
           onSave={handleUpdateRoom}
         />

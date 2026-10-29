@@ -10,6 +10,8 @@ import { DoorClosed, Plus, RotateCcw } from 'lucide-react';
 
 export const DashboardPage = ({
   onNavigateTab,
+  onOpenAddFloor,
+  onOpenAddFlat,
   onOpenAddRoom,
   onOpenAddBed,
   onOpenAddTenant,
@@ -125,8 +127,10 @@ export const DashboardPage = ({
         <>
           {/* Quick actions */}
           <QuickActions
+            onOpenAddFlat={onOpenAddFlat}
             onOpenAddRoom={onOpenAddRoom}
             onOpenAddBed={onOpenAddBed}
+            onAddFlat={onOpenAddFlat}
             onAddRoom={onOpenAddRoom}
             onAddBed={onOpenAddBed}
             onOpenAddTenant={onOpenAddTenant}

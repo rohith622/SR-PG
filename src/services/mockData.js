@@ -3,11 +3,47 @@
  * Based on the project specifications
  */
 
+export const INITIAL_FLATS = [
+  {
+    id: 'flat-101',
+    flatNumber: 'Flat 101',
+    name: 'Flat 101',
+    floorId: 'floor-1',
+    floor: '1st Floor',
+    floorNumber: 1,
+    description: '2BHK Apartment, East facing',
+    createdAt: '2026-01-10T09:00:00Z',
+  },
+  {
+    id: 'flat-102',
+    flatNumber: 'Flat 102',
+    name: 'Flat 102',
+    floorId: 'floor-1',
+    floor: '1st Floor',
+    floorNumber: 1,
+    description: '3BHK Apartment, North facing',
+    createdAt: '2026-01-10T10:00:00Z',
+  },
+  {
+    id: 'flat-201',
+    flatNumber: 'Flat 201',
+    name: 'Flat 201',
+    floorId: 'floor-2',
+    floor: '2nd Floor',
+    floorNumber: 2,
+    description: '2BHK Apartment, West facing',
+    createdAt: '2026-01-10T11:00:00Z',
+  },
+];
+
 export const INITIAL_ROOMS = [
   {
     id: 'room-101',
     roomNumber: '101',
+    flatId: 'flat-101',
+    flatNumber: 'Flat 101',
     floor: '1st Floor',
+    floorNumber: 1,
     roomType: 'Double Sharing',
     capacity: 2,
     monthlyRent: 7500,
