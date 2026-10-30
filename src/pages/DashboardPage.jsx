@@ -4,6 +4,7 @@ import { SummaryCards } from '../components/dashboard/SummaryCards';
 import { QuickActions } from '../components/dashboard/QuickActions';
 import { RentOverview } from '../components/dashboard/RentOverview';
 import { OccupancyBar } from '../components/dashboard/OccupancyBar';
+import { VacateReminders } from '../components/dashboard/VacateReminders';
 import { EmptyState } from '../components/common/EmptyState';
 import dashboardService from '../services/dashboardService';
 import { DoorClosed, Plus, RotateCcw } from 'lucide-react';
@@ -142,6 +143,12 @@ export const DashboardPage = ({
           <SummaryCards
             summary={summary}
             onCardClick={handleCardClick}
+          />
+
+          {/* Tenant Vacate Reminders */}
+          <VacateReminders
+            reminders={summary?.vacateReminders || []}
+            onNavigateToBeds={() => onNavigateTab('beds')}
           />
 
           {/* Payment Doughnut Chart & Collection Comparison */}

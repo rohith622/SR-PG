@@ -1,6 +1,6 @@
 /**
  * Dashboard Aggregation Service
- * Collects real computed metrics across rooms, beds, tenants, and rent dues.
+ * Collects real computed metrics across rooms, beds, tenants, rent dues, and upcoming vacates.
  */
 
 import apiClient from './apiClient';
@@ -134,6 +134,79 @@ export const dashboardService = {
         return (a.rawDueDate || '').localeCompare(b.rawDueDate || '');
       });
 
+      // Vacate reminders calculation (for daily stays and scheduled vacates)
+      const vacateReminders = [];
+      let vacatingTodayCount = 0;
+      let vacatingOverdueCount = 0;
+
+      activeTenantsList.forEach((t) => {
+        let expectedDate = t.expectedCheckoutDate;
+        if (!expectedDate && t.stayType === 'Daily' && t.joiningDate && t.stayDurationDays) {
+          const parts = t.joiningDate.split('-');
+          if (parts.length === 3) {
+            const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            d.setDate(d.getDate() + Number(t.stayDurationDays));
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const dt = String(d.getDate()).padStart(2, '0');
+            expectedDate = `${y}-${m}-${dt}`;
+          }
+        }
+
+        if (expectedDate || t.stayType === 'Daily') {
+          let daysLeft = null;
+          let status = 'UPCOMING';
+
+          if (expectedDate) {
+            const parseDate = (str) => {
+              const p = str.split('-');
+              return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+            };
+            const d1 = parseDate(expectedDate);
+            const d2 = parseDate(todayStr);
+            daysLeft = Math.round((d1.getTime() - d2.getTime()) / (1000 * 60 * 60 * 24));
+
+            if (daysLeft < 0) {
+              status = 'OVERDUE';
+              vacatingOverdueCount++;
+            } else if (daysLeft === 0) {
+              status = 'TODAY';
+              vacatingTodayCount++;
+            } else if (daysLeft === 1) {
+              status = 'TOMORROW';
+            } else {
+              status = 'UPCOMING';
+            }
+          }
+
+          vacateReminders.push({
+            id: String(t.id || t._id),
+            name: t.fullName || t.name || 'Tenant',
+            phone: t.phone || '',
+            roomNumber: String(t.room?.roomNumber || t.roomNumber || '—'),
+            bedNumber: String(t.bed?.bedNumber || t.bedNumber || '—'),
+            stayType: t.stayType || 'Daily',
+            stayDurationDays: t.stayDurationDays || null,
+            dailyRate: t.dailyRate || 0,
+            joiningDate: t.joiningDate,
+            expectedCheckoutDate: expectedDate,
+            formattedDate: formatDateToDisplay(expectedDate),
+            daysLeft,
+            status,
+            notes: t.notes || '',
+            monthlyRent: Number(t.monthlyRent) || 0,
+          });
+        }
+      });
+
+      // Sort vacate reminders: Overdue first, then Today, Tomorrow, then Upcoming
+      const vacateStatusWeight = { OVERDUE: 0, TODAY: 1, TOMORROW: 2, UPCOMING: 3 };
+      vacateReminders.sort((a, b) => {
+        const diff = (vacateStatusWeight[a.status] ?? 4) - (vacateStatusWeight[b.status] ?? 4);
+        if (diff !== 0) return diff;
+        return (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999);
+      });
+
       const summary = {
         totalRooms,
         totalBeds,
@@ -149,6 +222,10 @@ export const dashboardService = {
           overdueCount,
         },
         rentDues,
+        vacateReminders,
+        vacatingTodayCount,
+        vacatingOverdueCount,
+        vacatingSoonCount: vacateReminders.length,
         roomOverview: rooms,
       };
 

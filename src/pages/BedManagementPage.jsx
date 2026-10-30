@@ -25,6 +25,8 @@ import {
   IndianRupee,
   PhoneCall,
   FileText,
+  Clock,
+  Calendar,
   Pencil,
   Trash2,
   LogOut,
@@ -193,14 +195,20 @@ function RoomCard({ room, selected, onClick }) {
 // -------------------------------------------------------------
 
 function AddTenantModal({ room, bed, onClose, onSave }) {
+  const initialRent = bed?.monthlyRent || 6000;
+  const initialDailyRate = Math.round(initialRent / 30) || 500;
+
   const [form, setForm] = useState({
     fullName: "",
     phone: "",
     email: "",
     address: "",
+    stayType: "Monthly",
+    stayDurationDays: "3",
+    dailyRate: String(initialDailyRate),
     joiningDate: new Date().toLocaleDateString("en-CA"),
-    monthlyRent: String(bed?.monthlyRent || 6000),
-    securityDeposit: String(bed?.monthlyRent || 6000),
+    monthlyRent: String(initialRent),
+    securityDeposit: String(initialRent),
     emergencyContact: "",
     notes: "",
   });
@@ -212,8 +220,34 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setError("");
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => {
+      if (name === "stayType") {
+        if (value === "Daily") {
+          return { ...prev, stayType: "Daily", securityDeposit: "0" };
+        } else {
+          return { ...prev, stayType: "Monthly", securityDeposit: prev.monthlyRent || "6000" };
+        }
+      }
+      return { ...prev, [name]: value };
+    });
   };
+
+  const getExpectedVacateDate = () => {
+    if (form.stayType === "Daily" && form.joiningDate && form.stayDurationDays) {
+      const parts = form.joiningDate.split("-");
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        d.setDate(d.getDate() + Number(form.stayDurationDays || 0));
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const dt = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${dt}`;
+      }
+    }
+    return "";
+  };
+
+  const calculatedDailyTotal = (Number(form.stayDurationDays) || 0) * (Number(form.dailyRate) || 0);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -247,12 +281,27 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
       return;
     }
 
-    if (
-      !Number.isFinite(Number(form.monthlyRent)) ||
-      Number(form.monthlyRent) <= 0
-    ) {
-      setError("Monthly rent must be greater than zero.");
-      return;
+    const isDaily = form.stayType === "Daily";
+
+    if (isDaily) {
+      const days = Number(form.stayDurationDays);
+      const rate = Number(form.dailyRate);
+      if (!days || days < 1) {
+        setError("Please enter a valid stay duration (at least 1 day).");
+        return;
+      }
+      if (!rate || rate <= 0) {
+        setError("Daily rate must be greater than zero.");
+        return;
+      }
+    } else {
+      if (
+        !Number.isFinite(Number(form.monthlyRent)) ||
+        Number(form.monthlyRent) <= 0
+      ) {
+        setError("Monthly rent must be greater than zero.");
+        return;
+      }
     }
 
     if (
@@ -275,9 +324,13 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
         phone: form.phone.trim(),
         email: form.email.trim(),
         address: form.address.trim(),
+        stayType: form.stayType,
+        dailyRate: isDaily ? Number(form.dailyRate) : 0,
+        stayDurationDays: isDaily ? Number(form.stayDurationDays) : null,
+        expectedCheckoutDate: isDaily ? getExpectedVacateDate() : null,
         joiningDate: form.joiningDate,
-        monthlyRent: Number(form.monthlyRent),
-        securityDeposit: Number(form.securityDeposit),
+        monthlyRent: isDaily ? calculatedDailyTotal : Number(form.monthlyRent),
+        securityDeposit: Number(form.securityDeposit || 0),
         emergencyContact: form.emergencyContact.trim(),
         notes: form.notes.trim(),
       });
@@ -334,6 +387,40 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
         )}
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          {/* Stay Type Selection */}
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-700">
+              Stay Type / Duration Plan *
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleChange({ target: { name: "stayType", value: "Monthly" } })}
+                className={`flex items-center justify-center gap-2 rounded-xl border py-2 px-3 text-xs font-bold transition ${
+                  form.stayType === "Monthly"
+                    ? "border-emerald-700 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-600/20"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                <Calendar className="h-3.5 w-3.5" />
+                <span>Monthly Stay</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleChange({ target: { name: "stayType", value: "Daily" } })}
+                className={`flex items-center justify-center gap-2 rounded-xl border py-2 px-3 text-xs font-bold transition ${
+                  form.stayType === "Daily"
+                    ? "border-amber-600 bg-amber-50 text-amber-950 ring-2 ring-amber-500/20"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                <Clock className="h-3.5 w-3.5 text-amber-600" />
+                <span>Daily Stay (3 - 15 Days)</span>
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
@@ -409,7 +496,7 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
 
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Joining date *
+                {form.stayType === "Daily" ? "Check-in date *" : "Joining date *"}
               </label>
               <div className="relative">
                 <CalendarDays className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -424,43 +511,124 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
               </div>
             </div>
 
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Monthly rent (₹) *
-              </label>
-              <div className="relative">
-                <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  name="monthlyRent"
-                  value={form.monthlyRent}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-xs sm:text-sm outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
-                  required
-                />
-              </div>
-            </div>
+            {form.stayType === "Daily" ? (
+              <>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    Stay duration (Days) *
+                  </label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-3 h-4 w-4 text-amber-600" />
+                    <input
+                      type="number"
+                      min="1"
+                      name="stayDurationDays"
+                      value={form.stayDurationDays}
+                      onChange={handleChange}
+                      placeholder="e.g. 3 or 10"
+                      className="w-full rounded-xl border border-amber-300 bg-white pl-9 pr-3 py-2.5 text-xs sm:text-sm font-semibold outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
+                      required
+                    />
+                  </div>
+                </div>
 
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Security deposit (₹) *
-              </label>
-              <div className="relative">
-                <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  name="securityDeposit"
-                  value={form.securityDeposit}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-xs sm:text-sm outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
-                  required
-                />
-              </div>
-            </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    Rate per day (₹) *
+                  </label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-amber-600" />
+                    <input
+                      type="number"
+                      min="1"
+                      name="dailyRate"
+                      value={form.dailyRate}
+                      onChange={handleChange}
+                      placeholder="e.g. 500"
+                      className="w-full rounded-xl border border-amber-300 bg-white pl-9 pr-3 py-2.5 text-xs sm:text-sm font-semibold outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    Total stay rent (₹)
+                  </label>
+                  <div className="flex h-[42px] items-center rounded-xl border border-emerald-300 bg-emerald-50 px-3 text-xs sm:text-sm font-bold text-emerald-900">
+                    ₹{calculatedDailyTotal.toLocaleString("en-IN")}
+                    <span className="ml-auto text-[11px] font-normal text-emerald-700">
+                      ({form.stayDurationDays || 0}d × ₹{form.dailyRate || 0})
+                    </span>
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50/70 p-2.5 text-xs text-amber-900">
+                    <span className="font-medium">Expected vacate date:</span>
+                    <span className="font-bold">{getExpectedVacateDate() || "—"}</span>
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    Security deposit (₹)
+                  </label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                    <input
+                      type="number"
+                      min="0"
+                      name="securityDeposit"
+                      value={form.securityDeposit}
+                      onChange={handleChange}
+                      placeholder="0"
+                      className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-xs sm:text-sm outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    Monthly rent (₹) *
+                  </label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      name="monthlyRent"
+                      value={form.monthlyRent}
+                      onChange={handleChange}
+                      className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-xs sm:text-sm outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    Security deposit (₹) *
+                  </label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      name="securityDeposit"
+                      value={form.securityDeposit}
+                      onChange={handleChange}
+                      className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-xs sm:text-sm outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
+                      required
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
@@ -1219,11 +1387,17 @@ function EditBedModal({ bed, room, onClose, onSave }) {
 }
 
 function EditTenantModal({ tenant, room, bed, onClose, onSave }) {
+  const initialDailyRate =
+    tenant?.dailyRate || Math.round((tenant?.monthlyRent || bed?.monthlyRent || 6000) / 30) || 500;
+
   const [form, setForm] = useState({
     fullName: tenant?.fullName || tenant?.name || "",
     phone: tenant?.phone || "",
     email: tenant?.email || "",
     address: tenant?.address || "",
+    stayType: tenant?.stayType || "Monthly",
+    stayDurationDays: String(tenant?.stayDurationDays || 3),
+    dailyRate: String(initialDailyRate),
     joiningDate: tenant?.joiningDate || new Date().toLocaleDateString("en-CA"),
     monthlyRent: String(tenant?.monthlyRent || bed?.monthlyRent || 6000),
     securityDeposit: String(tenant?.securityDeposit || 0),
@@ -1238,8 +1412,34 @@ function EditTenantModal({ tenant, room, bed, onClose, onSave }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setError("");
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => {
+      if (name === "stayType") {
+        if (value === "Daily") {
+          return { ...prev, stayType: "Daily" };
+        } else {
+          return { ...prev, stayType: "Monthly" };
+        }
+      }
+      return { ...prev, [name]: value };
+    });
   };
+
+  const getExpectedVacateDate = () => {
+    if (form.stayType === "Daily" && form.joiningDate && form.stayDurationDays) {
+      const parts = form.joiningDate.split("-");
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        d.setDate(d.getDate() + Number(form.stayDurationDays || 0));
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const dt = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${dt}`;
+      }
+    }
+    return "";
+  };
+
+  const calculatedDailyTotal = (Number(form.stayDurationDays) || 0) * (Number(form.dailyRate) || 0);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -1268,13 +1468,30 @@ function EditTenantModal({ tenant, room, bed, onClose, onSave }) {
       setError("Please select the joining date.");
       return;
     }
-    if (
-      !Number.isFinite(Number(form.monthlyRent)) ||
-      Number(form.monthlyRent) <= 0
-    ) {
-      setError("Monthly rent must be greater than zero.");
-      return;
+
+    const isDaily = form.stayType === "Daily";
+
+    if (isDaily) {
+      const days = Number(form.stayDurationDays);
+      const rate = Number(form.dailyRate);
+      if (!days || days < 1) {
+        setError("Please enter a valid stay duration (at least 1 day).");
+        return;
+      }
+      if (!rate || rate <= 0) {
+        setError("Daily rate must be greater than zero.");
+        return;
+      }
+    } else {
+      if (
+        !Number.isFinite(Number(form.monthlyRent)) ||
+        Number(form.monthlyRent) <= 0
+      ) {
+        setError("Monthly rent must be greater than zero.");
+        return;
+      }
     }
+
     if (
       !Number.isFinite(Number(form.securityDeposit)) ||
       Number(form.securityDeposit) < 0
@@ -1291,8 +1508,12 @@ function EditTenantModal({ tenant, room, bed, onClose, onSave }) {
         email: form.email.trim(),
         address: form.address.trim(),
         joiningDate: form.joiningDate,
-        monthlyRent: Number(form.monthlyRent),
-        securityDeposit: Number(form.securityDeposit),
+        stayType: form.stayType,
+        dailyRate: isDaily ? Number(form.dailyRate) : 0,
+        stayDurationDays: isDaily ? Number(form.stayDurationDays) : null,
+        expectedCheckoutDate: isDaily ? getExpectedVacateDate() : null,
+        monthlyRent: isDaily ? calculatedDailyTotal : Number(form.monthlyRent),
+        securityDeposit: Number(form.securityDeposit || 0),
         emergencyContact: form.emergencyContact.trim(),
         notes: form.notes.trim(),
       });
@@ -1340,6 +1561,40 @@ function EditTenantModal({ tenant, room, bed, onClose, onSave }) {
         )}
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          {/* Stay Type Selection */}
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-700">
+              Stay Type / Duration Plan *
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleChange({ target: { name: "stayType", value: "Monthly" } })}
+                className={`flex items-center justify-center gap-2 rounded-xl border py-2 px-3 text-xs font-bold transition ${
+                  form.stayType === "Monthly"
+                    ? "border-emerald-700 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-600/20"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                <Calendar className="h-3.5 w-3.5" />
+                <span>Monthly Stay</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleChange({ target: { name: "stayType", value: "Daily" } })}
+                className={`flex items-center justify-center gap-2 rounded-xl border py-2 px-3 text-xs font-bold transition ${
+                  form.stayType === "Daily"
+                    ? "border-amber-600 bg-amber-50 text-amber-950 ring-2 ring-amber-500/20"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                <Clock className="h-3.5 w-3.5 text-amber-600" />
+                <span>Daily Stay (3 - 15 Days)</span>
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
@@ -1415,7 +1670,7 @@ function EditTenantModal({ tenant, room, bed, onClose, onSave }) {
 
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Joining date *
+                {form.stayType === "Daily" ? "Check-in date *" : "Joining date *"}
               </label>
               <div className="relative">
                 <CalendarDays className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -1430,43 +1685,124 @@ function EditTenantModal({ tenant, room, bed, onClose, onSave }) {
               </div>
             </div>
 
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Monthly rent (₹) *
-              </label>
-              <div className="relative">
-                <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  name="monthlyRent"
-                  value={form.monthlyRent}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-xs sm:text-sm outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
-                  required
-                />
-              </div>
-            </div>
+            {form.stayType === "Daily" ? (
+              <>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    Stay duration (Days) *
+                  </label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-3 h-4 w-4 text-amber-600" />
+                    <input
+                      type="number"
+                      min="1"
+                      name="stayDurationDays"
+                      value={form.stayDurationDays}
+                      onChange={handleChange}
+                      placeholder="e.g. 3 or 10"
+                      className="w-full rounded-xl border border-amber-300 bg-white pl-9 pr-3 py-2.5 text-xs sm:text-sm font-semibold outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
+                      required
+                    />
+                  </div>
+                </div>
 
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">
-                Security deposit (₹) *
-              </label>
-              <div className="relative">
-                <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  name="securityDeposit"
-                  value={form.securityDeposit}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-xs sm:text-sm outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
-                  required
-                />
-              </div>
-            </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    Rate per day (₹) *
+                  </label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-amber-600" />
+                    <input
+                      type="number"
+                      min="1"
+                      name="dailyRate"
+                      value={form.dailyRate}
+                      onChange={handleChange}
+                      placeholder="e.g. 500"
+                      className="w-full rounded-xl border border-amber-300 bg-white pl-9 pr-3 py-2.5 text-xs sm:text-sm font-semibold outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    Total stay rent (₹)
+                  </label>
+                  <div className="flex h-[42px] items-center rounded-xl border border-emerald-300 bg-emerald-50 px-3 text-xs sm:text-sm font-bold text-emerald-900">
+                    ₹{calculatedDailyTotal.toLocaleString("en-IN")}
+                    <span className="ml-auto text-[11px] font-normal text-emerald-700">
+                      ({form.stayDurationDays || 0}d × ₹{form.dailyRate || 0})
+                    </span>
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50/70 p-2.5 text-xs text-amber-900">
+                    <span className="font-medium">Expected vacate date:</span>
+                    <span className="font-bold">{getExpectedVacateDate() || "—"}</span>
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    Security deposit (₹)
+                  </label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                    <input
+                      type="number"
+                      min="0"
+                      name="securityDeposit"
+                      value={form.securityDeposit}
+                      onChange={handleChange}
+                      placeholder="0"
+                      className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-xs sm:text-sm outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    Monthly rent (₹) *
+                  </label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      name="monthlyRent"
+                      value={form.monthlyRent}
+                      onChange={handleChange}
+                      className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-xs sm:text-sm outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    Security deposit (₹) *
+                  </label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      name="securityDeposit"
+                      value={form.securityDeposit}
+                      onChange={handleChange}
+                      className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2.5 text-xs sm:text-sm outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
+                      required
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
@@ -1892,6 +2228,10 @@ export default function BedManagement({
           securityDeposit: t.securityDeposit || 0,
           emergencyContact: t.emergencyContact || "",
           notes: t.notes || "",
+          stayType: t.stayType || "Monthly",
+          dailyRate: t.dailyRate || 0,
+          stayDurationDays: t.stayDurationDays || null,
+          expectedCheckoutDate: t.expectedCheckoutDate || null,
           tenantStatus: t.tenantStatus || "Active",
           roomId: t.room?.id || t.room?._id || t.roomId,
           bedId: bid,
@@ -2301,6 +2641,10 @@ export default function BedManagement({
           address: tenantData.address || "",
           roomId: currentRoom.roomId,
           bedId: currentBed.bedId,
+          stayType: tenantData.stayType || "Monthly",
+          dailyRate: tenantData.dailyRate || 0,
+          stayDurationDays: tenantData.stayDurationDays || null,
+          expectedCheckoutDate: tenantData.expectedCheckoutDate || null,
           joiningDate:
             tenantData.joiningDate || new Date().toISOString().split("T")[0],
           monthlyRent:
@@ -2332,6 +2676,10 @@ export default function BedManagement({
       phone: tenantData.phone,
       email: tenantData.email,
       address: tenantData.address,
+      stayType: tenantData.stayType,
+      dailyRate: tenantData.dailyRate,
+      stayDurationDays: tenantData.stayDurationDays,
+      expectedCheckoutDate: tenantData.expectedCheckoutDate,
       joiningDate: tenantData.joiningDate,
       monthlyRent: tenantData.monthlyRent,
       securityDeposit: tenantData.securityDeposit,
@@ -3039,9 +3387,17 @@ export default function BedManagement({
                                 <div className="mt-2.5 rounded-lg border border-slate-100 bg-[#fdfcf9] p-2.5">
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="min-w-0 flex-1">
-                                      <p className="truncate text-xs font-bold text-slate-800 sm:text-sm">
-                                        {bed.tenant.fullName || bed.tenant.name}
-                                      </p>
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <p className="truncate text-xs font-bold text-slate-800 sm:text-sm">
+                                          {bed.tenant.fullName || bed.tenant.name}
+                                        </p>
+                                        {bed.tenant.stayType === "Daily" && (
+                                          <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900 border border-amber-200">
+                                            <Clock size={10} />
+                                            Daily ({bed.tenant.stayDurationDays || 0}d) · Vacate: {bed.tenant.expectedCheckoutDate || "—"}
+                                          </span>
+                                        )}
+                                      </div>
 
                                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-slate-500 sm:text-xs">
                                         <a

@@ -103,7 +103,14 @@ export const SummaryCards = ({ summary, onCardClick }) => {
       id: 'tenants',
       title: 'Tenants',
       value: summary?.activeTenants ?? 0,
-      subtext: 'Currently residing',
+      subtext: summary?.vacatingSoonCount
+        ? `${summary.vacatingSoonCount} scheduled to vacate`
+        : 'Currently residing',
+      status: summary?.vacatingTodayCount
+        ? { label: `${summary.vacatingTodayCount} vacating today`, tone: 'warn' }
+        : summary?.vacatingOverdueCount
+        ? { label: `${summary.vacatingOverdueCount} vacate overdue`, tone: 'warn' }
+        : null,
       icon: Users,
       decoration: Users,
       tone: 'gold',
