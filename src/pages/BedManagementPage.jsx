@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useCallback, useState, useRef } from "react";
 import bedService from "../services/bedService";
 import apiClient from "../services/apiClient";
+import { storage } from "../services/storageService";
 import {
   BedDouble,
   Building2,
   Home,
+  DoorOpen,
   Users,
   Search,
   ChevronRight,
@@ -126,41 +128,83 @@ function StatusBadge({ status }) {
   );
 }
 
-function RoomCard({ room, selected, onClick }) {
+function RoomCard({ room, selected, onClick, onEdit, onDelete }) {
   const counts = getCounts([room]);
 
   return (
-    <button
-      type="button"
+    <div
       onClick={onClick}
-      className={`min-w-0 rounded-xl border p-3.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-14px_rgba(28,45,35,0.25)] sm:p-4 ${
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+      className={`group relative min-w-0 cursor-pointer rounded-xl border p-3.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-14px_rgba(28,45,35,0.25)] sm:p-4 ${
         selected
-          ? "border-[#c6a96a] bg-white ring-1 ring-[#c6a96a] shadow-sm"
+          ? "border-emerald-700 bg-emerald-50/40 ring-2 ring-emerald-700 shadow-md"
           : counts.available === 0 && counts.maintenance === 0
             ? "border-rose-200 bg-rose-50/70"
             : counts.available === counts.beds
               ? "border-emerald-200 bg-emerald-50/50"
-              : "border-[#e8e2d7] bg-white hover:border-[#c6a96a]"
+              : "border-[#e8e2d7] bg-white hover:border-emerald-600"
       }`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <span
             className={`text-sm font-bold ${
-              counts.available === 0 && counts.maintenance === 0
-                ? "text-rose-700"
-                : "text-slate-900"
+              selected
+                ? "text-emerald-900 font-extrabold"
+                : counts.available === 0 && counts.maintenance === 0
+                  ? "text-rose-700"
+                  : "text-slate-900"
             }`}
           >
-            {room.id}
+            Room {room.roomNumber || room.id}
           </span>
+          {/* {selected && (
+            <span className="rounded bg-emerald-800 px-1.5 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
+              Selected
+            </span>
+          )} */}
           {room.flatNumber && (
             <span className="truncate rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 border border-emerald-100">
-              Flat {room.flatNumber}
+              {room.flatNumber}
             </span>
           )}
         </div>
-        <ChevronRight size={16} className="text-slate-400 shrink-0" />
+        <div className="flex items-center gap-1">
+          {onEdit && (
+            <button
+              type="button"
+              title="Edit Room"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(room);
+              }}
+              className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-emerald-50 hover:text-emerald-800"
+            >
+              <Pencil size={12} />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              title="Delete Room"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(room);
+              }}
+              className="inline-flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-red-50 hover:text-red-700"
+            >
+              <Trash2 size={12} />
+            </button>
+          )}
+          {/* <ChevronRight size={16} className="text-slate-400 shrink-0" /> */}
+        </div>
       </div>
 
       <p
@@ -186,7 +230,7 @@ function RoomCard({ room, selected, onClick }) {
           <span className="text-orange-600">{counts.maintenance} repair</span>
         )}
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -225,7 +269,11 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
         if (value === "Daily") {
           return { ...prev, stayType: "Daily", securityDeposit: "0" };
         } else {
-          return { ...prev, stayType: "Monthly", securityDeposit: prev.monthlyRent || "6000" };
+          return {
+            ...prev,
+            stayType: "Monthly",
+            securityDeposit: prev.monthlyRent || "6000",
+          };
         }
       }
       return { ...prev, [name]: value };
@@ -233,10 +281,18 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
   };
 
   const getExpectedVacateDate = () => {
-    if (form.stayType === "Daily" && form.joiningDate && form.stayDurationDays) {
+    if (
+      form.stayType === "Daily" &&
+      form.joiningDate &&
+      form.stayDurationDays
+    ) {
       const parts = form.joiningDate.split("-");
       if (parts.length === 3) {
-        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        const d = new Date(
+          parseInt(parts[0], 10),
+          parseInt(parts[1], 10) - 1,
+          parseInt(parts[2], 10),
+        );
         d.setDate(d.getDate() + Number(form.stayDurationDays || 0));
         const y = d.getFullYear();
         const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -247,7 +303,8 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
     return "";
   };
 
-  const calculatedDailyTotal = (Number(form.stayDurationDays) || 0) * (Number(form.dailyRate) || 0);
+  const calculatedDailyTotal =
+    (Number(form.stayDurationDays) || 0) * (Number(form.dailyRate) || 0);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -335,7 +392,11 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
         notes: form.notes.trim(),
       });
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Failed to save tenant.");
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to save tenant.",
+      );
       setIsSubmitting(false);
     }
   };
@@ -395,7 +456,11 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => handleChange({ target: { name: "stayType", value: "Monthly" } })}
+                onClick={() =>
+                  handleChange({
+                    target: { name: "stayType", value: "Monthly" },
+                  })
+                }
                 className={`flex items-center justify-center gap-2 rounded-xl border py-2 px-3 text-xs font-bold transition ${
                   form.stayType === "Monthly"
                     ? "border-emerald-700 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-600/20"
@@ -408,7 +473,9 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
 
               <button
                 type="button"
-                onClick={() => handleChange({ target: { name: "stayType", value: "Daily" } })}
+                onClick={() =>
+                  handleChange({ target: { name: "stayType", value: "Daily" } })
+                }
                 className={`flex items-center justify-center gap-2 rounded-xl border py-2 px-3 text-xs font-bold transition ${
                   form.stayType === "Daily"
                     ? "border-amber-600 bg-amber-50 text-amber-950 ring-2 ring-amber-500/20"
@@ -496,7 +563,9 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
 
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
-                {form.stayType === "Daily" ? "Check-in date *" : "Joining date *"}
+                {form.stayType === "Daily"
+                  ? "Check-in date *"
+                  : "Joining date *"}
               </label>
               <div className="relative">
                 <CalendarDays className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -566,7 +635,9 @@ function AddTenantModal({ room, bed, onClose, onSave }) {
                 <div className="sm:col-span-2">
                   <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50/70 p-2.5 text-xs text-amber-900">
                     <span className="font-medium">Expected vacate date:</span>
-                    <span className="font-bold">{getExpectedVacateDate() || "—"}</span>
+                    <span className="font-bold">
+                      {getExpectedVacateDate() || "—"}
+                    </span>
                   </div>
                 </div>
 
@@ -739,7 +810,9 @@ function EditFloorModal({ floor, onClose, onSave }) {
       });
     } catch (err) {
       setError(
-        err?.response?.data?.message || err?.message || "Failed to update floor.",
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to update floor.",
       );
       setIsSubmitting(false);
     }
@@ -785,9 +858,7 @@ function EditFloorModal({ floor, onClose, onSave }) {
             <input
               type="text"
               value={form.name}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, name: e.target.value }))
-              }
+              onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
               placeholder="e.g. 1st Floor or Ground Floor"
               className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs sm:text-sm outline-none focus:border-[#c6a96a] focus:ring-2 focus:ring-[#c6a96a]/20"
               required
@@ -883,7 +954,9 @@ function EditFlatModal({ flat, floors, onClose, onSave }) {
       });
     } catch (err) {
       setError(
-        err?.response?.data?.message || err?.message || "Failed to update flat."
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to update flat.",
       );
       setIsSubmitting(false);
     }
@@ -1037,7 +1110,9 @@ function EditRoomModal({ room, floors, flats = [], onClose, onSave }) {
       });
     } catch (err) {
       setError(
-        err?.response?.data?.message || err?.message || "Failed to update room.",
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to update room.",
       );
       setIsSubmitting(false);
     }
@@ -1388,7 +1463,9 @@ function EditBedModal({ bed, room, onClose, onSave }) {
 
 function EditTenantModal({ tenant, room, bed, onClose, onSave }) {
   const initialDailyRate =
-    tenant?.dailyRate || Math.round((tenant?.monthlyRent || bed?.monthlyRent || 6000) / 30) || 500;
+    tenant?.dailyRate ||
+    Math.round((tenant?.monthlyRent || bed?.monthlyRent || 6000) / 30) ||
+    500;
 
   const [form, setForm] = useState({
     fullName: tenant?.fullName || tenant?.name || "",
@@ -1425,10 +1502,18 @@ function EditTenantModal({ tenant, room, bed, onClose, onSave }) {
   };
 
   const getExpectedVacateDate = () => {
-    if (form.stayType === "Daily" && form.joiningDate && form.stayDurationDays) {
+    if (
+      form.stayType === "Daily" &&
+      form.joiningDate &&
+      form.stayDurationDays
+    ) {
       const parts = form.joiningDate.split("-");
       if (parts.length === 3) {
-        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        const d = new Date(
+          parseInt(parts[0], 10),
+          parseInt(parts[1], 10) - 1,
+          parseInt(parts[2], 10),
+        );
         d.setDate(d.getDate() + Number(form.stayDurationDays || 0));
         const y = d.getFullYear();
         const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -1439,7 +1524,8 @@ function EditTenantModal({ tenant, room, bed, onClose, onSave }) {
     return "";
   };
 
-  const calculatedDailyTotal = (Number(form.stayDurationDays) || 0) * (Number(form.dailyRate) || 0);
+  const calculatedDailyTotal =
+    (Number(form.stayDurationDays) || 0) * (Number(form.dailyRate) || 0);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -1519,7 +1605,9 @@ function EditTenantModal({ tenant, room, bed, onClose, onSave }) {
       });
     } catch (err) {
       setError(
-        err?.response?.data?.message || err?.message || "Failed to update tenant.",
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to update tenant.",
       );
       setIsSubmitting(false);
     }
@@ -1569,7 +1657,11 @@ function EditTenantModal({ tenant, room, bed, onClose, onSave }) {
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => handleChange({ target: { name: "stayType", value: "Monthly" } })}
+                onClick={() =>
+                  handleChange({
+                    target: { name: "stayType", value: "Monthly" },
+                  })
+                }
                 className={`flex items-center justify-center gap-2 rounded-xl border py-2 px-3 text-xs font-bold transition ${
                   form.stayType === "Monthly"
                     ? "border-emerald-700 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-600/20"
@@ -1582,7 +1674,9 @@ function EditTenantModal({ tenant, room, bed, onClose, onSave }) {
 
               <button
                 type="button"
-                onClick={() => handleChange({ target: { name: "stayType", value: "Daily" } })}
+                onClick={() =>
+                  handleChange({ target: { name: "stayType", value: "Daily" } })
+                }
                 className={`flex items-center justify-center gap-2 rounded-xl border py-2 px-3 text-xs font-bold transition ${
                   form.stayType === "Daily"
                     ? "border-amber-600 bg-amber-50 text-amber-950 ring-2 ring-amber-500/20"
@@ -1670,7 +1764,9 @@ function EditTenantModal({ tenant, room, bed, onClose, onSave }) {
 
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">
-                {form.stayType === "Daily" ? "Check-in date *" : "Joining date *"}
+                {form.stayType === "Daily"
+                  ? "Check-in date *"
+                  : "Joining date *"}
               </label>
               <div className="relative">
                 <CalendarDays className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -1740,7 +1836,9 @@ function EditTenantModal({ tenant, room, bed, onClose, onSave }) {
                 <div className="sm:col-span-2">
                   <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50/70 p-2.5 text-xs text-amber-900">
                     <span className="font-medium">Expected vacate date:</span>
-                    <span className="font-bold">{getExpectedVacateDate() || "—"}</span>
+                    <span className="font-bold">
+                      {getExpectedVacateDate() || "—"}
+                    </span>
                   </div>
                 </div>
 
@@ -2112,6 +2210,7 @@ export default function BedManagement({
   onOpenAddFlat,
   onOpenAddRoom,
   onOpenAddBed,
+  onOpenAddTenant,
   initialSelectedRoomId,
 }) {
   const [rooms, setRooms] = useState([]);
@@ -2157,15 +2256,16 @@ export default function BedManagement({
     setError("");
 
     try {
-      const [floorsRes, flatsRes, roomsRes, bedsRes, tenantsRes] = await Promise.all([
-        apiClient.get("/api/management?type=floor"),
-        apiClient
-          .get("/api/management?type=flat")
-          .catch(() => ({ data: { items: [] } })),
-        apiClient.get("/api/management?type=room"),
-        apiClient.get("/api/management?type=bed"),
-        apiClient.get("/api/tenants"),
-      ]);
+      const [floorsRes, flatsRes, roomsRes, bedsRes, tenantsRes] =
+        await Promise.all([
+          apiClient.get("/api/management?type=floor"),
+          apiClient
+            .get("/api/management?type=flat")
+            .catch(() => ({ data: { items: [] } })),
+          apiClient.get("/api/management?type=room"),
+          apiClient.get("/api/management?type=bed"),
+          apiClient.get("/api/tenants"),
+        ]);
 
       const floorsData =
         floorsRes?.data?.data?.items || floorsRes?.data?.items || [];
@@ -2257,50 +2357,53 @@ export default function BedManagement({
         // If there's an active tenant, bed is occupied.
         // Otherwise, if bed is under maintenance, it's maintenance.
         // If tenant checked out or bed is unassigned, status is available!
-        const status =
-          tenant
-            ? "occupied"
-            : rawStatus === "maintenance"
-              ? "maintenance"
-              : "available";
+        const status = tenant
+          ? "occupied"
+          : rawStatus === "maintenance"
+            ? "maintenance"
+            : "available";
 
         bedsByRoomId[rid].push({
-          id: b.bedNumber || String(bid),
+          id: String(bid),
           bedId: bid,
-          bedNumber: b.bedNumber,
+          bedNumber: b.bedNumber || `Bed ${bid}`,
           bedType: b.bedType || "Single",
-          monthlyRent: b.monthlyRent || 6000,
+          monthlyRent: Number(b.monthlyRent) || 6000,
           status,
           tenant: tenant || null,
           roomId: rid,
         });
       });
 
-      // Assemble unified rooms list
+      // Assemble unified rooms list with stable string IDs
       const combinedRooms = roomsData.map((r) => {
-        const rid = r.id || r._id;
+        const rid = String(r.id || r._id);
         const floorName =
-          floorMap[r.floorId] ||
+          floorMap[String(r.floorId)] ||
           (r.floorNumber !== undefined && r.floorNumber !== null
             ? getFloorLabel(r.floorNumber)
             : "1st Floor");
-        const beds = bedsByRoomId[String(rid)] || [];
+        const beds = bedsByRoomId[rid] || [];
         const flatObj = r.flatId ? flatMap[String(r.flatId)] : null;
         const flatNumber = flatObj
           ? flatObj.flatNumber || flatObj.name
           : r.flatNumber || "";
 
         return {
-          id: r.roomNumber || String(rid),
+          id: rid,
           roomId: rid,
-          roomNumber: r.roomNumber,
-          floorId: r.floorId,
+          roomNumber: r.roomNumber || r.name || rid,
+          floorId: r.floorId ? String(r.floorId) : "",
           floorNumber: r.floorNumber,
           floor: floorName,
-          flatId: r.flatId || (flatObj ? flatObj.id || flatObj._id : null),
+          flatId: r.flatId
+            ? String(r.flatId)
+            : flatObj
+              ? String(flatObj.id || flatObj._id)
+              : "",
           flatNumber,
           flatName: flatNumber,
-          capacity: r.capacity || beds.length || 1,
+          capacity: Number(r.capacity) || beds.length || 1,
           description: r.description || "",
           beds,
         };
@@ -2315,10 +2418,19 @@ export default function BedManagement({
           if (
             preferred &&
             combinedRooms.some(
-              (rm) => rm.id === preferred || rm.roomId === preferred,
+              (rm) =>
+                String(rm.id) === String(preferred) ||
+                String(rm.roomId) === String(preferred) ||
+                String(rm.roomNumber) === String(preferred),
             )
           ) {
-            return preferred;
+            const found = combinedRooms.find(
+              (rm) =>
+                String(rm.id) === String(preferred) ||
+                String(rm.roomId) === String(preferred) ||
+                String(rm.roomNumber) === String(preferred),
+            );
+            return found ? found.id : preferred;
           }
           return combinedRooms[0].id;
         });
@@ -2362,71 +2474,28 @@ export default function BedManagement({
   }, [floors]);
 
   const floorDropdownOptions = useMemo(() => {
-    return [
-      ...floorOptions,
-      { id: "all", label: "All Floors", floorNumber: "all" },
-    ];
+    return floorOptions;
   }, [floorOptions]);
 
-  // Default select first floor when floors are loaded
-  useEffect(() => {
-    if (floorOptions.length > 0) {
-      const isExistingValid = floorOptions.some((f) => f.id === selectedFloorId);
-      if (!isExistingValid && selectedFloorId !== "all") {
-        const firstFloor = floorOptions[0];
-        setSelectedFloorId(firstFloor.id);
-        setSelectedFloor(firstFloor.label);
-      }
-    } else if (floors.length === 0) {
-      setSelectedFloorId("all");
-      setSelectedFloor("All Floors");
+  // Active Floor (defaults to first available floor)
+  const activeFloorId = useMemo(() => {
+    if (
+      selectedFloorId &&
+      selectedFloorId !== "all" &&
+      floorOptions.some((f) => String(f.id) === String(selectedFloorId))
+    ) {
+      return selectedFloorId;
     }
-  }, [floorOptions, selectedFloorId, floors.length]);
+    return floorOptions[0]?.id || "";
+  }, [selectedFloorId, floorOptions]);
 
-  // Flats on the currently selected floor
-  const currentFloorFlats = useMemo(() => {
-    if (!selectedFloorId || selectedFloorId === "all") {
-      return flats;
-    }
-    return flats.filter(
-      (fl) => String(fl.floorId) === String(selectedFloorId),
+  const currentFloorObj = useMemo(() => {
+    if (!activeFloorId) return null;
+    return (
+      floors.find((f) => String(f.id || f._id) === String(activeFloorId)) ||
+      null
     );
-  }, [flats, selectedFloorId]);
-
-  // Default select first flat of the selected floor
-  useEffect(() => {
-    if (currentFloorFlats.length > 0) {
-      const isExistingValid = currentFloorFlats.some(
-        (fl) => String(fl.id || fl._id) === String(selectedFlatId),
-      );
-      if (!isExistingValid && selectedFlatId !== "all") {
-        setSelectedFlatId(String(currentFloorFlats[0].id || currentFloorFlats[0]._id));
-      }
-    } else {
-      setSelectedFlatId("");
-    }
-  }, [currentFloorFlats, selectedFlatId]);
-
-  const handleFloorSelectChange = (newFloorId) => {
-    setSelectedFloorId(newFloorId);
-    if (newFloorId === "all") {
-      setSelectedFloor("All Floors");
-      setSelectedFlatId("all");
-    } else {
-      const foundFloor = floorOptions.find((f) => f.id === newFloorId);
-      setSelectedFloor(foundFloor?.label || "Floor");
-      const floorFlats = flats.filter((fl) => String(fl.floorId) === String(newFloorId));
-      if (floorFlats.length > 0) {
-        setSelectedFlatId(String(floorFlats[0].id || floorFlats[0]._id));
-      } else {
-        setSelectedFlatId("");
-      }
-    }
-  };
-
-  const handleFlatSelectChange = (newFlatId) => {
-    setSelectedFlatId(newFlatId);
-  };
+  }, [floors, activeFloorId]);
 
   const floorMap = useMemo(() => {
     const map = {};
@@ -2437,92 +2506,187 @@ export default function BedManagement({
     return map;
   }, [floors]);
 
-  const currentFloorObj = useMemo(() => {
-    if (!selectedFloorId || selectedFloorId === "all") return null;
-    return (
-      floors.find((f) => String(f.id || f._id) === String(selectedFloorId)) ||
-      null
-    );
-  }, [floors, selectedFloorId]);
+  // Flats on the currently active floor
+  const currentFloorFlats = useMemo(() => {
+    if (!activeFloorId) return [];
+    return flats.filter((fl) => String(fl.floorId) === String(activeFloorId));
+  }, [flats, activeFloorId]);
 
-  const displayedFlats = useMemo(() => {
-    if (selectedFlatId && selectedFlatId !== "all") {
-      return currentFloorFlats.filter(
+  const flatDropdownOptions = useMemo(() => {
+    return currentFloorFlats.map((fl) => ({
+      id: String(fl.id || fl._id),
+      label: fl.flatNumber || fl.name,
+    }));
+  }, [currentFloorFlats]);
+
+  // Active Flat (defaults to first available flat on current floor)
+  const activeFlatId = useMemo(() => {
+    if (
+      selectedFlatId &&
+      selectedFlatId !== "all" &&
+      currentFloorFlats.some(
         (fl) => String(fl.id || fl._id) === String(selectedFlatId),
-      );
+      )
+    ) {
+      return selectedFlatId;
     }
-    return currentFloorFlats;
-  }, [currentFloorFlats, selectedFlatId]);
+    return currentFloorFlats[0]
+      ? String(currentFloorFlats[0].id || currentFloorFlats[0]._id)
+      : "";
+  }, [selectedFlatId, currentFloorFlats]);
 
+  // All rooms belonging to the active floor (by floorId or through flat association)
+  const floorRooms = useMemo(() => {
+    if (!activeFloorId || activeFloorId === "all") return rooms;
+    const floorFlatIds = new Set(
+      currentFloorFlats.map((fl) => String(fl.id || fl._id)),
+    );
+    return rooms.filter(
+      (room) =>
+        String(room.floorId) === String(activeFloorId) ||
+        (room.flatId && floorFlatIds.has(String(room.flatId))),
+    );
+  }, [rooms, activeFloorId, currentFloorFlats]);
+
+  // Candidate rooms: all rooms on the current floor are candidates
+  const candidateRooms = useMemo(() => {
+    return floorRooms;
+  }, [floorRooms]);
+
+  // Room dropdown options based on all current candidate rooms
+  const roomDropdownOptions = useMemo(() => {
+    return candidateRooms.map((r) => ({
+      id: String(r.id || r.roomId),
+      label: `Room ${r.roomNumber || r.id}${r.flatNumber ? ` (${r.flatNumber})` : ""}`,
+    }));
+  }, [candidateRooms]);
+
+  // Active Room ID (defaults to first room of the candidate rooms)
+  const activeRoomId = useMemo(() => {
+    if (
+      selectedRoomId &&
+      candidateRooms.some(
+        (r) =>
+          String(r.id) === String(selectedRoomId) ||
+          String(r.roomId) === String(selectedRoomId),
+      )
+    ) {
+      return selectedRoomId;
+    }
+    return candidateRooms[0]
+      ? String(candidateRooms[0].id || candidateRooms[0].roomId)
+      : "";
+  }, [selectedRoomId, candidateRooms]);
+
+  const handleFloorSelectChange = (newFloorId) => {
+    setSelectedFloorId(newFloorId);
+    const foundFloor = floorOptions.find(
+      (f) => String(f.id) === String(newFloorId),
+    );
+    setSelectedFloor(foundFloor?.label || "Floor");
+
+    // Automatically select the first flat and room
+    const floorFlats = flats.filter(
+      (fl) => String(fl.floorId) === String(newFloorId),
+    );
+    if (floorFlats.length > 0) {
+      const firstFlatId = String(floorFlats[0].id || floorFlats[0]._id);
+      setSelectedFlatId(firstFlatId);
+    } else {
+      setSelectedFlatId("");
+    }
+    const targetRooms = rooms.filter(
+      (r) =>
+        String(r.floorId) === String(newFloorId) ||
+        (r.flatId &&
+          floorFlats.some(
+            (fl) => String(fl.id || fl._id) === String(r.flatId),
+          )),
+    );
+    if (targetRooms.length > 0) {
+      setSelectedRoomId(String(targetRooms[0].id || targetRooms[0].roomId));
+    } else {
+      setSelectedRoomId("");
+    }
+  };
+
+  const handleFlatSelectChange = (newFlatId) => {
+    setSelectedFlatId(newFlatId);
+    const flatRooms = rooms.filter(
+      (r) => String(r.flatId) === String(newFlatId),
+    );
+    if (flatRooms.length > 0) {
+      setSelectedRoomId(String(flatRooms[0].id || flatRooms[0].roomId));
+    }
+  };
+
+  const handleRoomSelectChange = (newRoomId) => {
+    setSelectedRoomId(newRoomId);
+    const roomObj = rooms.find(
+      (r) =>
+        String(r.id) === String(newRoomId) ||
+        String(r.roomId) === String(newRoomId),
+    );
+    if (roomObj?.flatId) {
+      setSelectedFlatId(String(roomObj.flatId));
+    }
+    setShowRoomDetails(true);
+  };
+
+  const handleRoomCardClick = (room) => {
+    const rid = String(room.id || room.roomId);
+    setSelectedRoomId(rid);
+    if (room.flatId) {
+      setSelectedFlatId(String(room.flatId));
+    }
+    setShowRoomDetails(true);
+    setBedFilter("all");
+  };
+
+  // Rooms visible: ALL candidate rooms remain visible in the grid (only filtered by search query)
   const visibleRooms = useMemo(() => {
-    return rooms.filter((room) => {
-      // 1. Floor match
-      const matchesFloor =
-        selectedFloorId === "all" ||
-        selectedFloor === "All Floors" ||
-        room.floor === selectedFloor ||
-        (selectedFloorId && String(room.floorId) === String(selectedFloorId));
-
-      // 2. Flat match
-      let matchesFlat = true;
-      if (selectedFlatId && selectedFlatId !== "all") {
-        matchesFlat = String(room.flatId) === String(selectedFlatId);
-      }
-
-      // 3. Search match
-      const matchesSearch =
-        !search.trim() ||
-        String(room.id).toLowerCase().includes(search.toLowerCase()) ||
-        (room.roomNumber &&
-          String(room.roomNumber)
-            .toLowerCase()
-            .includes(search.toLowerCase())) ||
+    if (!search.trim()) return candidateRooms;
+    const query = search.toLowerCase();
+    return candidateRooms.filter((room) => {
+      return (
+        String(room.id).toLowerCase().includes(query) ||
+        String(room.roomNumber || "")
+          .toLowerCase()
+          .includes(query) ||
         (room.flatNumber &&
-          String(room.flatNumber)
-            .toLowerCase()
-            .includes(search.toLowerCase())) ||
-        room.beds.some((bed) =>
-          bed.tenant?.name?.toLowerCase().includes(search.toLowerCase()),
-        );
-
-      return matchesFloor && matchesFlat && matchesSearch;
+          String(room.flatNumber).toLowerCase().includes(query)) ||
+        room.beds.some((bed) => bed.tenant?.name?.toLowerCase().includes(query))
+      );
     });
-  }, [rooms, selectedFloor, selectedFloorId, selectedFlatId, search]);
+  }, [candidateRooms, search]);
 
+  // Display ALL flats on the current floor so all rooms are always visible
+  const displayedFlats = useMemo(() => {
+    return currentFloorFlats;
+  }, [currentFloorFlats]);
+
+  // Standalone rooms: any rooms on this floor not belonging to a known flat on this floor
   const standaloneRooms = useMemo(() => {
-    if (selectedFlatId && selectedFlatId !== "all") {
-      return [];
-    }
-    const currentFlatsIds = new Set(
+    const floorFlatIds = new Set(
       currentFloorFlats.map((fl) => String(fl.id || fl._id)),
     );
     return visibleRooms.filter(
-      (room) => !room.flatId || !currentFlatsIds.has(String(room.flatId)),
+      (room) => !room.flatId || !floorFlatIds.has(String(room.flatId)),
     );
-  }, [currentFloorFlats, visibleRooms, selectedFlatId]);
-
-  // Keep selected room in sync with visible rooms
-  useEffect(() => {
-    if (visibleRooms.length > 0) {
-      const isCurrentVisible = visibleRooms.some(
-        (r) => r.id === selectedRoomId || r.roomId === selectedRoomId,
-      );
-      if (!isCurrentVisible) {
-        setSelectedRoomId(visibleRooms[0].id);
-      }
-    }
-  }, [visibleRooms, selectedRoomId]);
+  }, [currentFloorFlats, visibleRooms]);
 
   const selectedRoom = useMemo(() => {
-    return (
-      rooms.find(
-        (room) => room.id === selectedRoomId || room.roomId === selectedRoomId,
-      ) ||
-      visibleRooms[0] ||
-      rooms[0] ||
-      null
-    );
-  }, [rooms, selectedRoomId, visibleRooms]);
+    if (activeRoomId) {
+      const found = rooms.find(
+        (room) =>
+          String(room.id) === String(activeRoomId) ||
+          String(room.roomId) === String(activeRoomId),
+      );
+      if (found) return found;
+    }
+    if (candidateRooms.length > 0) return candidateRooms[0];
+    return rooms[0] || null;
+  }, [rooms, activeRoomId, candidateRooms]);
 
   const selectedRoomCounts = selectedRoom ? getCounts([selectedRoom]) : null;
 
@@ -2534,88 +2698,197 @@ export default function BedManagement({
   const handleUpdateFloor = async (floorData) => {
     const fid = editingFloor?.id || editingFloor?._id;
     if (!fid) return;
-    await apiClient.put(`/api/management/${fid}?type=floor`, {
+    const res = await apiClient.put(`/api/management/${fid}?type=floor`, {
       name: floorData.name,
       floorNumber: floorData.floorNumber,
       description: floorData.description,
     });
+    if (res?.error) {
+      throw new Error(res.error);
+    }
     await loadData();
     setEditingFloor(null);
   };
 
   const handleDeleteFloor = async () => {
-    const fid = deletingFloor?.id;
-    if (!fid) return;
-    await apiClient.delete(`/api/management/${fid}?type=floor`);
+    const fid = String(
+      deletingFloor?.id || deletingFloor?._id || activeFloorId || "",
+    );
+    if (!fid) {
+      throw new Error("No floor selected to delete.");
+    }
+    const payload = { type: "floor", id: fid };
+    let res = await apiClient.delete(`/api/management/${fid}`, payload);
+    if (res?.error && (res?.status === 404 || res?.status === 405)) {
+      res = await apiClient.delete("/api/management", payload);
+    }
+    if (res?.error) {
+      throw new Error(res.error);
+    }
     await loadData();
     setDeletingFloor(null);
-    setSelectedFloor("All Floors");
-    setSelectedFloorId("all");
+    setSelectedFloorId("");
+    setSelectedFlatId("");
+    setSelectedRoomId("");
   };
 
   // 1.5 FLAT
   const handleUpdateFlat = async (flatData) => {
     const fid = editingFlat?.id || editingFlat?._id;
     if (!fid) return;
-    await apiClient.put(`/api/management/${fid}?type=flat`, {
+    const res = await apiClient.put(`/api/management/${fid}?type=flat`, {
       flatNumber: flatData.flatNumber,
       name: flatData.name || flatData.flatNumber,
       floorId: flatData.floorId,
       description: flatData.description,
     });
+    if (res?.error) {
+      throw new Error(res.error);
+    }
     await loadData();
     setEditingFlat(null);
   };
 
   const handleDeleteFlat = async () => {
-    const fid = deletingFlat?.id;
-    if (!fid) return;
-    await apiClient.delete(`/api/management/${fid}?type=flat`);
+    const fid = String(
+      deletingFlat?.id || deletingFlat?._id || activeFlatId || "",
+    );
+    if (!fid) {
+      throw new Error("No flat selected to delete.");
+    }
+    const payload = { type: "flat", id: fid };
+    let res = await apiClient.delete(`/api/management/${fid}`, payload);
+    if (res?.error && (res?.status === 404 || res?.status === 405)) {
+      res = await apiClient.delete("/api/management", payload);
+    }
+    if (res?.error) {
+      throw new Error(res.error);
+    }
     await loadData();
     setDeletingFlat(null);
+    setSelectedFlatId("");
+    setSelectedRoomId("");
   };
 
   // 2. ROOM
   const handleUpdateRoom = async (roomData) => {
     const rid = editingRoom?.roomId || editingRoom?.id;
     if (!rid) return;
-    await apiClient.put(`/api/management/${rid}?type=room`, {
+    let res = await apiClient.put(`/api/management/${rid}?type=room`, {
       roomNumber: roomData.roomNumber,
       floorId: roomData.floorId,
       flatId: roomData.flatId || null,
       capacity: roomData.capacity,
       description: roomData.description,
     });
+    if (res?.error && (res?.status === 404 || res?.status === 405)) {
+      res = await apiClient.put(`/api/rooms/${rid}`, roomData);
+    }
+    if (res?.error) {
+      throw new Error(res.error);
+    }
+    if (typeof storage !== "undefined" && storage?.updateRoom) {
+      try {
+        storage.updateRoom(rid, roomData);
+      } catch (e) {
+        console.warn("Mock updateRoom:", e);
+      }
+    }
     await loadData();
     setEditingRoom(null);
   };
 
   const handleDeleteRoom = async () => {
-    const rid = deletingRoom?.id;
-    if (!rid) return;
-    await apiClient.delete(`/api/management/${rid}?type=room`);
+    const rid = String(
+      deletingRoom?.id ||
+        deletingRoom?.room?.id ||
+        deletingRoom?.room?.roomId ||
+        deletingRoom?.room?._id ||
+        activeRoomId ||
+        "",
+    );
+    if (!rid) {
+      throw new Error("No room selected to delete.");
+    }
+
+    const payload = { type: "room", id: rid };
+
+    let res = await apiClient.delete(`/api/management/${rid}`, payload);
+    if (res?.error && (res?.status === 404 || res?.status === 405)) {
+      res = await apiClient.delete("/api/management", payload);
+    }
+    if (res?.error && (res?.status === 404 || res?.status === 405)) {
+      res = await apiClient.delete(`/api/rooms/${rid}`);
+    }
+    if (res?.error) {
+      throw new Error(res.error);
+    }
+    if (typeof storage !== "undefined" && storage?.deleteRoom) {
+      try {
+        storage.deleteRoom(rid);
+      } catch (e) {
+        console.warn("Mock deleteRoom:", e);
+      }
+    }
     await loadData();
     setDeletingRoom(null);
+    setSelectedRoomId("");
   };
 
   // 3. BED
   const handleUpdateBed = async (bedData) => {
     const bid = editingBed?.bed?.bedId || editingBed?.bed?.id;
     if (!bid) return;
-    await apiClient.put(`/api/management/${bid}?type=bed`, {
+    let res = await apiClient.put(`/api/management/${bid}?type=bed`, {
       bedNumber: bedData.bedNumber,
       bedType: bedData.bedType,
       monthlyRent: bedData.monthlyRent,
       status: bedData.status,
     });
+    if (res?.error && (res?.status === 404 || res?.status === 405)) {
+      res = await apiClient.patch(`/api/beds/${bid}/status`, {
+        status: bedData.status,
+      });
+    }
+    if (res?.error) {
+      throw new Error(res.error);
+    }
+    if (typeof storage !== "undefined" && storage?.updateBed) {
+      try {
+        storage.updateBed(bid, bedData);
+      } catch (e) {
+        console.warn("Mock updateBed:", e);
+      }
+    }
     await loadData();
     setEditingBed(null);
   };
 
   const handleDeleteBed = async () => {
-    const bid = deletingBed?.id;
-    if (!bid) return;
-    await apiClient.delete(`/api/management/${bid}?type=bed`);
+    const bid = String(
+      deletingBed?.id || deletingBed?.bedId || deletingBed?._id || "",
+    );
+    if (!bid) {
+      throw new Error("No bed selected to delete.");
+    }
+    const payload = { type: "bed", id: bid };
+    let res = await apiClient.delete(`/api/management/${bid}`, payload);
+    if (res?.error && (res?.status === 404 || res?.status === 405)) {
+      res = await apiClient.delete("/api/management", payload);
+    }
+    if (res?.error && (res?.status === 404 || res?.status === 405)) {
+      res = await apiClient.delete(`/api/beds/${bid}`);
+    }
+    if (res?.error) {
+      throw new Error(res.error);
+    }
+    if (typeof storage !== "undefined" && storage?.deleteBed) {
+      try {
+        storage.deleteBed(bid);
+      } catch (e) {
+        console.warn("Mock deleteBed:", e);
+      }
+    }
     await loadData();
     setDeletingBed(null);
   };
@@ -2625,53 +2898,60 @@ export default function BedManagement({
     if (!tenantModal) return;
 
     const currentRoom = rooms.find(
-      (r) => r.id === tenantModal.roomId || r.roomId === tenantModal.roomId,
+      (r) =>
+        String(r.id) === String(tenantModal.roomId) ||
+        String(r.roomId) === String(tenantModal.roomId),
     );
     const currentBed = currentRoom?.beds.find(
-      (b) => b.id === tenantModal.bedId || b.bedId === tenantModal.bedId,
+      (b) =>
+        String(b.id) === String(tenantModal.bedId) ||
+        String(b.bedId) === String(tenantModal.bedId),
     );
 
-    if (currentRoom?.roomId && currentBed?.bedId) {
-      try {
-        await apiClient.post("/api/management/create", {
-          type: "tenant",
-          fullName: tenantData.fullName || tenantData.name,
-          phone: tenantData.phone,
-          email: tenantData.email || "",
-          address: tenantData.address || "",
-          roomId: currentRoom.roomId,
-          bedId: currentBed.bedId,
-          stayType: tenantData.stayType || "Monthly",
-          dailyRate: tenantData.dailyRate || 0,
-          stayDurationDays: tenantData.stayDurationDays || null,
-          expectedCheckoutDate: tenantData.expectedCheckoutDate || null,
-          joiningDate:
-            tenantData.joiningDate || new Date().toISOString().split("T")[0],
-          monthlyRent:
-            Number(tenantData.monthlyRent) || currentBed.monthlyRent || 6000,
-          securityDeposit:
-            tenantData.securityDeposit !== undefined &&
-            tenantData.securityDeposit !== null &&
-            tenantData.securityDeposit !== ""
-              ? Number(tenantData.securityDeposit)
-              : 0,
-          emergencyContact: tenantData.emergencyContact || tenantData.phone,
-          notes: tenantData.notes || "",
-        });
-        await loadData();
-      } catch (err) {
-        console.warn("Backend tenant creation error:", err);
-      }
+    if (!currentRoom || !currentBed) {
+      throw new Error("Selected room or bed not found.");
     }
 
-    setSelectedRoomId(tenantModal.roomId);
+    const payload = {
+      type: "tenant",
+      fullName: tenantData.fullName || tenantData.name,
+      phone: tenantData.phone,
+      email: tenantData.email || "",
+      address: tenantData.address || "",
+      roomId: currentRoom.roomId || currentRoom.id,
+      bedId: currentBed.bedId || currentBed.id,
+      stayType: tenantData.stayType || "Monthly",
+      dailyRate: tenantData.dailyRate || 0,
+      stayDurationDays: tenantData.stayDurationDays || null,
+      expectedCheckoutDate: tenantData.expectedCheckoutDate || null,
+      joiningDate:
+        tenantData.joiningDate || new Date().toISOString().split("T")[0],
+      monthlyRent:
+        Number(tenantData.monthlyRent) || currentBed.monthlyRent || 6000,
+      securityDeposit:
+        tenantData.securityDeposit !== undefined &&
+        tenantData.securityDeposit !== null &&
+        tenantData.securityDeposit !== ""
+          ? Number(tenantData.securityDeposit)
+          : 0,
+      emergencyContact: tenantData.emergencyContact || tenantData.phone,
+      notes: tenantData.notes || "",
+    };
+
+    const res = await apiClient.post("/api/management/create", payload);
+    if (res?.error) {
+      throw new Error(res.error);
+    }
+
+    await loadData();
+    setSelectedRoomId(currentRoom.id);
     setTenantModal(null);
   };
 
   const handleUpdateTenant = async (tenantData) => {
     const tid = editingTenant?.tenant?.id || editingTenant?.tenant?.tenantId;
     if (!tid) return;
-    await apiClient.put(`/api/tenants/${tid}`, {
+    const res = await apiClient.put(`/api/tenants/${tid}`, {
       fullName: tenantData.fullName,
       phone: tenantData.phone,
       email: tenantData.email,
@@ -2686,14 +2966,41 @@ export default function BedManagement({
       emergencyContact: tenantData.emergencyContact,
       notes: tenantData.notes,
     });
+    if (res?.error) {
+      throw new Error(res.error);
+    }
     await loadData();
     setEditingTenant(null);
   };
 
   const handleDeleteTenant = async () => {
-    const tid = deletingTenant?.id;
-    if (!tid) return;
-    await apiClient.delete(`/api/tenants/${tid}`);
+    const tid = String(
+      deletingTenant?.id ||
+        deletingTenant?._id ||
+        deletingTenant?.tenantId ||
+        "",
+    );
+    if (!tid) {
+      throw new Error("No tenant selected to delete.");
+    }
+    const payload = { type: "tenant", id: tid };
+    let res = await apiClient.delete(`/api/management/${tid}`, payload);
+    if (res?.error && (res?.status === 404 || res?.status === 405)) {
+      res = await apiClient.delete("/api/management", payload);
+    }
+    if (res?.error && (res?.status === 404 || res?.status === 405)) {
+      res = await apiClient.delete(`/api/tenants/${tid}`);
+    }
+    if (res?.error) {
+      throw new Error(res.error);
+    }
+    if (typeof storage !== "undefined" && storage?.deleteTenant) {
+      try {
+        storage.deleteTenant(tid);
+      } catch (e) {
+        console.warn("Mock deleteTenant:", e);
+      }
+    }
     await loadData();
     setDeletingTenant(null);
   };
@@ -2702,11 +3009,13 @@ export default function BedManagement({
     const tid =
       checkingOutTenant?.tenant?.id || checkingOutTenant?.tenant?.tenantId;
     if (!tid) return;
-    await apiClient.put(`/api/tenants/${tid}`, {
+    const res = await apiClient.put(`/api/tenants/${tid}`, {
       tenantStatus: "CheckedOut",
-      checkoutDate:
-        checkoutDate || new Date().toISOString().split("T")[0],
+      checkoutDate: checkoutDate || new Date().toISOString().split("T")[0],
     });
+    if (res?.error) {
+      throw new Error(res.error);
+    }
     await loadData();
     setCheckingOutTenant(null);
   };
@@ -2748,7 +3057,11 @@ export default function BedManagement({
 
             <button
               type="button"
-              onClick={() => onOpenAddFlat?.(selectedFloorId !== "all" ? selectedFloorId : "")}
+              onClick={() =>
+                onOpenAddFlat?.(
+                  selectedFloorId !== "all" ? selectedFloorId : "",
+                )
+              }
               className="inline-flex min-h-9 items-center justify-center gap-1 rounded-md border border-emerald-200 bg-white px-2 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 focus:outline-none sm:min-h-11 sm:gap-2 sm:rounded-lg sm:px-4 sm:text-sm"
             >
               <Home size={15} />
@@ -2799,7 +3112,7 @@ export default function BedManagement({
                 <div className="relative">
                   <select
                     id="bed-floor-select"
-                    value={selectedFloorId}
+                    value={activeFloorId}
                     onChange={(e) => handleFloorSelectChange(e.target.value)}
                     className="h-10 min-w-[150px] appearance-none rounded-xl border border-[#e5dfd3] bg-[#faf8f4] pl-3.5 pr-8 text-xs font-semibold text-slate-800 shadow-sm transition hover:border-emerald-700 focus:border-emerald-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-800/20 sm:min-w-[170px] sm:text-sm"
                   >
@@ -2816,11 +3129,11 @@ export default function BedManagement({
                 </div>
 
                 {/* Edit / Delete Floor controls */}
-                {selectedFloorId !== "all" && currentFloorObj && (
+                {currentFloorObj && (
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      title={`Edit ${selectedFloor}`}
+                      title={`Edit ${currentFloorObj.name || selectedFloor || "Floor"}`}
                       onClick={() => setEditingFloor(currentFloorObj)}
                       className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
                     >
@@ -2828,17 +3141,24 @@ export default function BedManagement({
                     </button>
                     <button
                       type="button"
-                      title={`Delete ${selectedFloor}`}
-                      onClick={() =>
+                      title={`Delete ${currentFloorObj.name || selectedFloor || "Floor"}`}
+                      onClick={() => {
+                        const targetId = String(
+                          currentFloorObj.id ||
+                            currentFloorObj._id ||
+                            activeFloorId ||
+                            "",
+                        );
                         setDeletingFloor({
-                          id: currentFloorObj.id || currentFloorObj._id,
-                          name: selectedFloor,
+                          id: targetId,
+                          name:
+                            currentFloorObj.name || selectedFloor || "Floor",
                           warning:
                             currentFloorFlats.length > 0
-                              ? `This floor currently has ${currentFloorFlats.length} flat(s). You must delete the flats first.`
+                              ? `This floor currently has ${currentFloorFlats.length} flat(s). Deleting the floor will remove its flats and rooms if unoccupied.`
                               : undefined,
-                        })
-                      }
+                        });
+                      }}
                       className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-red-400 hover:bg-red-50 hover:text-red-700"
                     >
                       <Trash2 size={13} />
@@ -2859,32 +3179,19 @@ export default function BedManagement({
                 <div className="relative">
                   <select
                     id="bed-flat-select"
-                    value={selectedFlatId}
+                    value={activeFlatId}
                     onChange={(e) => handleFlatSelectChange(e.target.value)}
-                    disabled={currentFloorFlats.length === 0}
+                    disabled={
+                      currentFloorFlats.length === 0 &&
+                      selectedFloorId !== "all"
+                    }
                     className="h-10 min-w-[160px] appearance-none rounded-xl border border-[#e5dfd3] bg-[#faf8f4] pl-3.5 pr-8 text-xs font-semibold text-slate-800 shadow-sm transition hover:border-emerald-700 focus:border-emerald-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-800/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 sm:min-w-[180px] sm:text-sm"
                   >
-                    {currentFloorFlats.length > 0 ? (
-                      <>
-                        {currentFloorFlats.map((fl) => {
-                          const fid = String(fl.id || fl._id);
-                          const displayName = fl.flatNumber || fl.name;
-                          const extraName =
-                            fl.name && fl.name !== fl.flatNumber
-                              ? ` · ${fl.name}`
-                              : "";
-                          return (
-                            <option key={fid} value={fid}>
-                              {displayName}
-                              {extraName}
-                            </option>
-                          );
-                        })}
-                        <option value="all">All Flats on Floor</option>
-                      </>
-                    ) : (
-                      <option value="">No flats on this floor</option>
-                    )}
+                    {flatDropdownOptions.map((fl) => (
+                      <option key={fl.id} value={fl.id}>
+                        {fl.label}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown
                     size={15}
@@ -2893,14 +3200,69 @@ export default function BedManagement({
                 </div>
 
                 {/* Quick Add Flat if floor has no flats */}
-                {selectedFloorId !== "all" && currentFloorFlats.length === 0 && (
+                {selectedFloorId !== "all" &&
+                  currentFloorFlats.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenAddFlat?.(selectedFloorId)}
+                      className="inline-flex items-center gap-1 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/70 px-2.5 py-2 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                    >
+                      <Plus size={13} />
+                      <span>Create Flat</span>
+                    </button>
+                  )}
+              </div>
+
+              {/* Room Dropdown */}
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="bed-room-select"
+                  className="flex items-center gap-1.5 text-xs font-bold text-slate-700"
+                >
+                  <DoorOpen size={16} className="text-emerald-800" />
+                  <span>Room:</span>
+                </label>
+                <div className="relative">
+                  <select
+                    id="bed-room-select"
+                    value={activeRoomId}
+                    onChange={(e) => handleRoomSelectChange(e.target.value)}
+                    disabled={candidateRooms.length === 0}
+                    className="h-10 min-w-[150px] appearance-none rounded-xl border border-[#e5dfd3] bg-[#faf8f4] pl-3.5 pr-8 text-xs font-semibold text-slate-800 shadow-sm transition hover:border-emerald-700 focus:border-emerald-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-800/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 sm:min-w-[170px] sm:text-sm"
+                  >
+                    {roomDropdownOptions.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={15}
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500"
+                  />
+                </div>
+              </div>
+
+              {/* Search Filter Input */}
+              <div className="relative flex items-center">
+                <Search
+                  size={14}
+                  className="pointer-events-none absolute left-3 text-slate-400"
+                />
+                <input
+                  type="text"
+                  placeholder="Search room, flat, tenant..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="h-10 w-[180px] rounded-xl border border-[#e5dfd3] bg-[#faf8f4] pl-8 pr-7 text-xs text-slate-800 outline-none transition focus:border-emerald-700 focus:bg-white focus:ring-2 focus:ring-emerald-800/20 sm:w-[210px] sm:text-sm"
+                />
+                {search && (
                   <button
                     type="button"
-                    onClick={() => onOpenAddFlat?.(selectedFloorId)}
-                    className="inline-flex items-center gap-1 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/70 px-2.5 py-2 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                    onClick={() => setSearch("")}
+                    className="absolute right-2 text-slate-400 hover:text-slate-600"
                   >
-                    <Plus size={13} />
-                    <span>Create Flat</span>
+                    <X size={14} />
                   </button>
                 )}
               </div>
@@ -2963,7 +3325,8 @@ export default function BedManagement({
                     No Floors Added Yet
                   </h3>
                   <p className="mt-1 max-w-md text-xs text-slate-500 sm:text-sm">
-                    Start setting up your property hierarchy. First create a floor, then add flats, rooms, and beds.
+                    Start setting up your property hierarchy. First create a
+                    floor, then add flats, rooms, and beds.
                   </p>
                   <button
                     type="button"
@@ -2988,7 +3351,9 @@ export default function BedManagement({
                   <button
                     type="button"
                     onClick={() =>
-                      onOpenAddFlat?.(selectedFloorId !== "all" ? selectedFloorId : "")
+                      onOpenAddFlat?.(
+                        selectedFloorId !== "all" ? selectedFloorId : "",
+                      )
                     }
                     className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-emerald-900 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-800"
                   >
@@ -2997,145 +3362,165 @@ export default function BedManagement({
                   </button>
                 </div>
               ) : (
-                displayedFlats.map((flat) => {
-                  const flatIdStr = String(flat.id || flat._id);
-                  const flatRooms = rooms
-                    .filter((room) => String(room.flatId) === flatIdStr)
-                    .filter((room) => {
-                      if (!search.trim()) return true;
-                      return (
-                        String(room.roomNumber || "")
-                          .toLowerCase()
-                          .includes(search.toLowerCase()) ||
-                        room.beds.some((b) =>
-                          b.tenant?.name?.toLowerCase().includes(search.toLowerCase()),
-                        )
-                      );
-                    });
-                  const flatCounts = getCounts(flatRooms);
-                  const floorLabel =
-                    floorMap[flat.floorId] ||
-                    floors.find(
-                      (f) => String(f.id || f._id) === String(flat.floorId),
-                    )?.name ||
-                    "Floor";
+                <>
+                  {displayedFlats.map((flat) => {
+                    const flatIdStr = String(flat.id || flat._id);
+                    const flatRooms = visibleRooms.filter(
+                      (room) => String(room.flatId) === flatIdStr,
+                    );
+                    const flatCounts = getCounts(flatRooms);
+                    const floorLabel =
+                      floorMap[String(flat.floorId)] ||
+                      floorMap[flat.floorId] ||
+                      floors.find(
+                        (f) => String(f.id || f._id) === String(flat.floorId),
+                      )?.name ||
+                      "Floor";
 
-                  return (
-                    <section
-                      key={flatIdStr}
-                      className="overflow-hidden rounded-2xl border border-[#e9e2d4] bg-white shadow-[0_4px_18px_-14px_rgba(28,45,35,0.18)]"
-                    >
-                      {/* Flat Header */}
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eee8dd] bg-[#fdfcf9] px-4 py-4 sm:px-5">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-800 text-white shadow-sm">
-                            <Home size={18} />
-                          </div>
-                          <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h2 className="text-base font-bold text-slate-900">
-                                {flat.flatNumber || flat.name}
-                              </h2>
-                              {flat.name && flat.name !== flat.flatNumber && (
-                                <span className="text-xs font-medium text-slate-500">
-                                  ({flat.name})
-                                </span>
-                              )}
-                              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
-                                {floorLabel}
-                              </span>
-                              <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700">
-                                {flatRooms.length} Rooms · {flatCounts.beds} Beds
-                              </span>
+                    return (
+                      <section
+                        key={flatIdStr}
+                        className="overflow-hidden rounded-2xl border border-[#e9e2d4] bg-white shadow-[0_4px_18px_-14px_rgba(28,45,35,0.18)]"
+                      >
+                        {/* Flat Header */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eee8dd] bg-[#fdfcf9] px-4 py-4 sm:px-5">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-800 text-white shadow-sm">
+                              <Home size={18} />
                             </div>
-                            {flat.description && (
-                              <p className="mt-0.5 text-xs text-slate-500">
-                                {flat.description}
-                              </p>
-                            )}
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h2 className="text-base font-bold text-slate-900">
+                                  {flat.flatNumber || flat.name}
+                                </h2>
+                                {flat.name && flat.name !== flat.flatNumber && (
+                                  <span className="text-xs font-medium text-slate-500">
+                                    ({flat.name})
+                                  </span>
+                                )}
+                                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
+                                  {floorLabel}
+                                </span>
+                                <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700">
+                                  {flatRooms.length} Rooms · {flatCounts.beds}{" "}
+                                  Beds
+                                </span>
+                              </div>
+                              {flat.description && (
+                                <p className="mt-0.5 text-xs text-slate-500">
+                                  {flat.description}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            title={`Edit ${flat.flatNumber || flat.name}`}
-                            onClick={() => setEditingFlat(flat)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
-                          >
-                            <Pencil size={13} />
-                          </button>
-                          <button
-                            type="button"
-                            title={`Delete ${flat.flatNumber || flat.name}`}
-                            onClick={() =>
-                              setDeletingFlat({
-                                id: flat.id || flat._id,
-                                name: flat.flatNumber || flat.name,
-                                warning:
-                                  flatRooms.length > 0
-                                    ? `This flat currently has ${flatRooms.length} room(s). You must remove or reassign rooms first.`
-                                    : undefined,
-                              })
-                            }
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-red-400 hover:bg-red-50 hover:text-red-700"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onOpenAddRoom?.(flat.floorId, flat.id || flat._id)
-                            }
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-800"
-                          >
-                            <Plus size={13} />
-                            <span>Add Room</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Rooms Grid for this Flat */}
-                      <div className="p-4 sm:p-5">
-                        {flatRooms.length > 0 ? (
-                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-                            {flatRooms.map((room) => (
-                              <RoomCard
-                                key={room.id}
-                                room={room}
-                                selected={room.id === selectedRoomId}
-                                onClick={() => {
-                                  setSelectedRoomId(room.id);
-                                  setShowRoomDetails(true);
-                                  setBedFilter("all");
-                                }}
-                              />
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="rounded-xl border border-dashed border-[#e9e2d4] bg-[#faf8f4] p-8 text-center">
-                            <p className="text-sm font-semibold text-slate-700">
-                              No rooms in {flat.flatNumber || flat.name} yet
-                            </p>
-                            <p className="mt-1 text-xs text-slate-500">
-                              Add rooms to this flat to start adding beds and assigning tenants.
-                            </p>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              title={`Edit ${flat.flatNumber || flat.name}`}
+                              onClick={() => setEditingFlat(flat)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              title={`Delete ${flat.flatNumber || flat.name}`}
+                              onClick={() => {
+                                const targetId = String(
+                                  flat.id || flat._id || "",
+                                );
+                                setDeletingFlat({
+                                  id: targetId,
+                                  name: flat.flatNumber || flat.name,
+                                  warning:
+                                    flatRooms.length > 0
+                                      ? `This flat currently has ${flatRooms.length} room(s). Deleting the flat will remove its rooms and beds if unoccupied.`
+                                      : undefined,
+                                });
+                              }}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-red-400 hover:bg-red-50 hover:text-red-700"
+                            >
+                              <Trash2 size={13} />
+                            </button>
                             <button
                               type="button"
                               onClick={() =>
-                                onOpenAddRoom?.(flat.floorId, flat.id || flat._id)
+                                onOpenAddRoom?.(
+                                  flat.floorId,
+                                  flat.id || flat._id,
+                                )
                               }
-                              className="mt-3 inline-flex items-center gap-1 rounded-lg bg-emerald-900 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-800"
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-800"
                             >
                               <Plus size={13} />
-                              <span>Add Room to {flat.flatNumber || flat.name}</span>
+                              <span>Add Room</span>
                             </button>
                           </div>
-                        )}
-                      </div>
-                    </section>
-                  );
-                })
+                        </div>
+
+                        {/* Rooms Grid for this Flat */}
+                        <div className="p-4 sm:p-5">
+                          {flatRooms.length > 0 ? (
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                              {flatRooms.map((room) => (
+                                <RoomCard
+                                  key={room.id}
+                                  room={room}
+                                  selected={
+                                    String(room.id) === String(activeRoomId) ||
+                                    String(room.roomId) === String(activeRoomId)
+                                  }
+                                  onClick={() => handleRoomCardClick(room)}
+                                  onEdit={(r) => setEditingRoom(r)}
+                                  onDelete={(r) => {
+                                    const targetId = String(
+                                      r.id || r.roomId || r._id || "",
+                                    );
+                                    setDeletingRoom({
+                                      id: targetId,
+                                      room: r,
+                                      name: `Room ${r.roomNumber || r.id}`,
+                                      warning:
+                                        r.beds?.length > 0
+                                          ? `This room currently contains ${r.beds.length} bed(s). Deleting the room will remove its beds if unoccupied.`
+                                          : undefined,
+                                    });
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="rounded-xl border border-dashed border-[#e9e2d4] bg-[#faf8f4] p-8 text-center">
+                              <p className="text-sm font-semibold text-slate-700">
+                                No rooms in {flat.flatNumber || flat.name}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                Add rooms to this flat to start adding beds and
+                                assigning tenants.
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onOpenAddRoom?.(
+                                    flat.floorId,
+                                    flat.id || flat._id,
+                                  )
+                                }
+                                className="mt-3 inline-flex items-center gap-1 rounded-lg bg-emerald-900 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-800"
+                              >
+                                <Plus size={13} />
+                                <span>
+                                  Add Room to {flat.flatNumber || flat.name}
+                                </span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </>
               )}
 
               {/* Standalone rooms if any exist on this floor without flat */}
@@ -3149,23 +3534,34 @@ export default function BedManagement({
                       <RoomCard
                         key={room.id}
                         room={room}
-                        selected={room.id === selectedRoomId}
-                        onClick={() => {
-                          setSelectedRoomId(room.id);
-                          setShowRoomDetails(true);
-                          setBedFilter("all");
-                        }}
+                        selected={
+                          String(room.id) === String(activeRoomId) ||
+                          String(room.roomId) === String(activeRoomId)
+                        }
+                        onClick={() => handleRoomCardClick(room)}
+                        onEdit={(r) => setEditingRoom(r)}
+                        onDelete={(r) =>
+                          setDeletingRoom({
+                            id: r.id || r.roomId,
+                            room: r,
+                            name: `Room ${r.roomNumber || r.id}`,
+                            warning:
+                              r.beds?.length > 0
+                                ? `This room currently contains ${r.beds.length} bed(s). You must delete the beds first or they will be cleaned up.`
+                                : undefined,
+                          })
+                        }
                       />
                     ))}
                   </div>
                 </section>
               )}
 
-              {visibleRooms.length === 0 && (
+              {search.trim() && visibleRooms.length === 0 && (
                 <div className="rounded-md border border-dashed border-slate-300 bg-white px-5 py-12 text-center">
                   <Search className="mx-auto text-slate-400" size={28} />
                   <p className="mt-3 font-semibold text-slate-800">
-                    No rooms found
+                    No rooms found matching "{search}"
                   </p>
                   <p className="mt-1 text-sm text-slate-500">
                     Try another room number, tenant name or floor.
@@ -3174,11 +3570,10 @@ export default function BedManagement({
                     type="button"
                     onClick={() => {
                       setSearch("");
-                      handleFloorSelectChange("all");
                     }}
                     className="mt-4 text-sm font-semibold text-emerald-800 hover:underline"
                   >
-                    Clear filters
+                    Clear search
                   </button>
                 </div>
               )}
@@ -3196,11 +3591,16 @@ export default function BedManagement({
                       </p>
                       <h2 className="mt-1 text-lg font-bold text-slate-900 sm:text-xl">
                         Room {selectedRoom.roomNumber || selectedRoom.id}
-                        {selectedRoom.flatNumber ? ` (Flat ${selectedRoom.flatNumber})` : ""}
+                        {selectedRoom.flatNumber
+                          ? ` (Flat ${selectedRoom.flatNumber})`
+                          : ""}
                       </h2>
                       <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
                         {selectedRoom.floor}
-                        {selectedRoom.flatNumber ? ` · Flat ${selectedRoom.flatNumber}` : ""} · {selectedRoom.beds.length} Beds
+                        {selectedRoom.flatNumber
+                          ? ` · Flat ${selectedRoom.flatNumber}`
+                          : ""}{" "}
+                        · {selectedRoom.beds.length} Beds
                         {selectedRoom.capacity
                           ? ` (Max ${selectedRoom.capacity})`
                           : ""}
@@ -3219,16 +3619,24 @@ export default function BedManagement({
                       <button
                         type="button"
                         title="Delete Room"
-                        onClick={() =>
+                        onClick={() => {
+                          const targetId = String(
+                            selectedRoom.id ||
+                              selectedRoom.roomId ||
+                              selectedRoom._id ||
+                              activeRoomId ||
+                              "",
+                          );
                           setDeletingRoom({
-                            id: selectedRoom.roomId,
+                            id: targetId,
+                            room: selectedRoom,
                             name: `Room ${selectedRoom.roomNumber || selectedRoom.id}`,
                             warning:
-                              selectedRoom.beds.length > 0
-                                ? `This room currently contains ${selectedRoom.beds.length} bed(s). You must delete the beds first.`
+                              selectedRoom.beds?.length > 0
+                                ? `This room currently contains ${selectedRoom.beds.length} bed(s). Deleting the room will remove its beds if unoccupied.`
                                 : undefined,
-                          })
-                        }
+                          });
+                        }}
                         className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-red-400 hover:bg-red-50 hover:text-red-700"
                       >
                         <Trash2 size={13} />
@@ -3300,9 +3708,23 @@ export default function BedManagement({
                 {/* Bed details */}
                 <div className="p-3 sm:p-4">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-bold text-slate-900">
-                      Bed Details
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-slate-900">
+                        Bed Details
+                      </h3>
+                      {selectedRoom &&
+                        Number(selectedRoom.capacity || 0) >
+                          (selectedRoom.beds?.length || 0) && (
+                          <button
+                            type="button"
+                            onClick={() => onOpenAddBed?.(selectedRoom)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                          >
+                            <Plus size={12} />
+                            <span>Add Bed</span>
+                          </button>
+                        )}
+                    </div>
 
                     <select
                       value={bedFilter}
@@ -3365,16 +3787,20 @@ export default function BedManagement({
                                   <button
                                     type="button"
                                     title="Delete Bed"
-                                    onClick={() =>
+                                    onClick={() => {
+                                      const targetId = String(
+                                        bed.id || bed.bedId || bed._id || "",
+                                      );
                                       setDeletingBed({
-                                        id: bed.bedId,
+                                        id: targetId,
                                         name: `Bed ${bed.bedNumber || bed.id}`,
                                         warning:
-                                          bed.tenant || bed.status === "occupied"
-                                            ? "This bed currently has an active tenant. You must remove or check out the tenant before deleting the bed."
+                                          bed.tenant ||
+                                          bed.status === "occupied"
+                                            ? "This bed currently has an active tenant. You must check out the tenant before deleting the bed."
                                             : undefined,
-                                      })
-                                    }
+                                      });
+                                    }}
                                     className="inline-flex h-6 w-6 items-center justify-center rounded border border-slate-200 bg-white text-slate-500 transition hover:border-red-400 hover:text-red-700"
                                   >
                                     <Trash2 size={11} />
@@ -3389,12 +3815,17 @@ export default function BedManagement({
                                     <div className="min-w-0 flex-1">
                                       <div className="flex items-center gap-2 flex-wrap">
                                         <p className="truncate text-xs font-bold text-slate-800 sm:text-sm">
-                                          {bed.tenant.fullName || bed.tenant.name}
+                                          {bed.tenant.fullName ||
+                                            bed.tenant.name}
                                         </p>
                                         {bed.tenant.stayType === "Daily" && (
                                           <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900 border border-amber-200">
                                             <Clock size={10} />
-                                            Daily ({bed.tenant.stayDurationDays || 0}d) · Vacate: {bed.tenant.expectedCheckoutDate || "—"}
+                                            Daily (
+                                            {bed.tenant.stayDurationDays || 0}d)
+                                            · Vacate:{" "}
+                                            {bed.tenant.expectedCheckoutDate ||
+                                              "—"}
                                           </span>
                                         )}
                                       </div>
@@ -3455,19 +3886,22 @@ export default function BedManagement({
                                       <button
                                         type="button"
                                         title="Delete Tenant"
-                                        onClick={() =>
+                                        onClick={() => {
+                                          const targetId = String(
+                                            bed.tenant.id ||
+                                              bed.tenant._id ||
+                                              bed.tenant.tenantId ||
+                                              "",
+                                          );
                                           setDeletingTenant({
-                                            id:
-                                              bed.tenant.id ||
-                                              bed.tenant.tenantId,
+                                            id: targetId,
                                             name:
                                               bed.tenant.fullName ||
                                               bed.tenant.name,
-                                            bedNumber:
-                                              bed.bedNumber || bed.id,
-                                            warning: `Deleting this tenant will remove their record and free up Bed ${bed.bedNumber || bed.id}. If you only want them to leave, use Check Out instead.`,
-                                          })
-                                        }
+                                            bedNumber: bed.bedNumber || bed.id,
+                                            warning: `Deleting this tenant will remove their record and free up Bed ${bed.bedNumber || bed.id}.`,
+                                          });
+                                        }}
                                         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:border-red-400 hover:bg-red-50 hover:text-red-700"
                                       >
                                         <Trash2 size={12} />
@@ -3483,12 +3917,16 @@ export default function BedManagement({
 
                                   <button
                                     type="button"
-                                    onClick={() =>
-                                      setTenantModal({
-                                        roomId: selectedRoom.id,
-                                        bedId: bed.id,
-                                      })
-                                    }
+                                    onClick={() => {
+                                      if (onOpenAddTenant) {
+                                        onOpenAddTenant(bed);
+                                      } else {
+                                        setTenantModal({
+                                          roomId: selectedRoom.id,
+                                          bedId: bed.id,
+                                        });
+                                      }
+                                    }}
                                     className="mt-2 inline-flex items-center gap-1 rounded-md bg-emerald-900 px-2.5 py-1.5 text-[10px] font-semibold text-white transition hover:bg-emerald-800 sm:text-xs"
                                   >
                                     <Plus size={12} />
@@ -3515,10 +3953,14 @@ export default function BedManagement({
                         );
 
                         if (availableBed) {
-                          setTenantModal({
-                            roomId: selectedRoom.id,
-                            bedId: availableBed.id,
-                          });
+                          if (onOpenAddTenant) {
+                            onOpenAddTenant(availableBed);
+                          } else {
+                            setTenantModal({
+                              roomId: selectedRoom.id,
+                              bedId: availableBed.id,
+                            });
+                          }
                         }
                       }}
                       className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-900 px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-800 sm:text-sm"
@@ -3561,18 +4003,19 @@ export default function BedManagement({
         <AddTenantModal
           room={rooms.find(
             (room) =>
-              room.id === tenantModal.roomId ||
-              room.roomId === tenantModal.roomId,
+              String(room.id) === String(tenantModal.roomId) ||
+              String(room.roomId) === String(tenantModal.roomId),
           )}
           bed={rooms
             .find(
               (room) =>
-                room.id === tenantModal.roomId ||
-                room.roomId === tenantModal.roomId,
+                String(room.id) === String(tenantModal.roomId) ||
+                String(room.roomId) === String(tenantModal.roomId),
             )
             ?.beds.find(
               (bed) =>
-                bed.id === tenantModal.bedId || bed.bedId === tenantModal.bedId,
+                String(bed.id) === String(tenantModal.bedId) ||
+                String(bed.bedId) === String(tenantModal.bedId),
             )}
           onClose={() => setTenantModal(null)}
           onSave={handleAddTenant}

@@ -119,7 +119,7 @@ export async function apiRequest(endpoint, options = {}) {
 
   if (
     body &&
-    ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase())
+    ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())
   ) {
     config.body = JSON.stringify(body);
   }
@@ -196,9 +196,18 @@ export default {
       body,
     }),
 
-  delete: (endpoint, options = {}) =>
-    apiRequest(endpoint, {
+  delete: (endpoint, body = null, options = {}) => {
+    // If second arg is options object without body/type/id (e.g. { params, headers }):
+    if (body && typeof body === 'object' && ('headers' in body || 'params' in body || 'mockHandler' in body) && !('type' in body) && !('id' in body)) {
+      return apiRequest(endpoint, {
+        ...body,
+        method: 'DELETE',
+      });
+    }
+    return apiRequest(endpoint, {
       ...options,
       method: 'DELETE',
-    }),
+      body,
+    });
+  },
 };

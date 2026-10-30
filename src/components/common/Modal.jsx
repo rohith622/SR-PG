@@ -12,23 +12,30 @@ export const Modal = ({
 }) => {
   const modalRef = useRef(null);
   const previouslyFocusedElement = useRef(null);
+  const onCloseRef = useRef(onClose);
 
   useEffect(() => {
-    if (isOpen) {
-      previouslyFocusedElement.current = document.activeElement;
-      document.body.style.overflow = 'hidden';
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
-      const handleKeyDown = (e) => {
-        if (e.key === 'Escape') {
-          onClose();
-        }
-      };
+  useEffect(() => {
+    if (!isOpen) return;
 
-      window.addEventListener('keydown', handleKeyDown);
+    previouslyFocusedElement.current = document.activeElement;
+    document.body.style.overflow = 'hidden';
 
-      // Focus first focusable element inside modal
-      setTimeout(() => {
-        if (modalRef.current) {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onCloseRef.current?.();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Focus first focusable element inside modal only once on open if not already focused
+    const timer = setTimeout(() => {
+      if (modalRef.current) {
+        if (!modalRef.current.contains(document.activeElement)) {
           const focusable = modalRef.current.querySelectorAll(
             'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
           );
@@ -36,17 +43,18 @@ export const Modal = ({
             focusable[0].focus();
           }
         }
-      }, 50);
+      }
+    }, 50);
 
-      return () => {
-        window.removeEventListener('keydown', handleKeyDown);
-        document.body.style.overflow = '';
-        if (previouslyFocusedElement.current) {
-          previouslyFocusedElement.current.focus();
-        }
-      };
-    }
-  }, [isOpen, onClose]);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+      if (previouslyFocusedElement.current) {
+        previouslyFocusedElement.current.focus();
+      }
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

@@ -208,8 +208,9 @@ function MainApp() {
           key={`beds-${refreshKey}`}
           onOpenAddFloor={handleOpenAddFloor}
           onOpenAddFlat={handleOpenAddFlat}
-          onOpenAddRoom={() => setIsAddRoomOpen(true)}
+          onOpenAddRoom={(floorId, flatId) => handleOpenAddRoom(floorId, flatId)}
           onOpenAddBed={() => handleOpenAddBed()}
+          onOpenAddTenant={(bed) => handleOpenAddTenant(bed)}
           initialSelectedRoomId={selectedRoomId}
         />
       )}
@@ -262,6 +263,8 @@ function MainApp() {
         }}
         onRoomCreated={(room) => {
           setRefreshKey((key) => key + 1);
+          const newId = room?.id || room?.roomId || room?._id;
+          if (newId) setSelectedRoomId(String(newId));
           toast.success("Room created successfully.");
         }}
       />
@@ -269,6 +272,7 @@ function MainApp() {
       {/* Add Bed Modal */}
       <AddBedModal
         isOpen={isAddBedOpen}
+        preselectedRoom={addBedState.preselectedRoom}
         onClose={() => setIsAddBedOpen(false)}
         onBedCreated={async () => {
           setIsAddBedOpen(false);

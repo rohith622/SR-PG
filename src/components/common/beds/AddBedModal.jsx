@@ -13,9 +13,11 @@ import {
 
 import Modal from "../Modal";
 import apiClient from "../../../services/apiClient";
+import { storage } from "../../../services/storageService";
 
 const INITIAL_FORM = {
   roomId: "",
+  count: 1,
   bedNumber: "",
   bedType: "Single",
   monthlyRent: "6000",
@@ -54,7 +56,12 @@ function FieldIcon({ children }) {
 const inputClass =
   "w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-3.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-50 disabled:cursor-not-allowed disabled:bg-slate-50";
 
-export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
+export default function AddBedModal({
+  isOpen,
+  onClose,
+  onBedCreated,
+  preselectedRoom = null,
+}) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [rooms, setRooms] = useState([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
@@ -64,56 +71,99 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
   const [successMessage, setSuccessMessage] = useState("");
 
   const selectedRoom = useMemo(
-    () => rooms.find((room) => room.id === form.roomId),
+    () =>
+      rooms.find(
+        (room) =>
+          String(room.id || room._id) === String(form.roomId) ||
+          String(room.roomId) === String(form.roomId),
+      ),
     [rooms, form.roomId],
   );
 
   const remainingCapacity = selectedRoom
     ? Math.max(
         0,
-        Number(selectedRoom.capacity || 0) - Number(selectedRoom.bedCount || 0),
+        Number(selectedRoom.capacity || 0) -
+          Number(
+            selectedRoom.bedCount ??
+              (Array.isArray(selectedRoom.beds)
+                ? selectedRoom.beds.length
+                : 0),
+          ),
       )
     : 0;
 
   const canAddBed = Boolean(selectedRoom && remainingCapacity > 0);
 
-  const loadRooms = useCallback(async () => {
+  // Auto-generate preview IDs based on existing beds in room
+  const previewBedNumbers = useMemo(() => {
+    if (!selectedRoom) return [];
+    const count = Math.max(
+      1,
+      Math.min(Number(form.count) || 1, remainingCapacity || 1),
+    );
+    const existing = new Set(
+      (selectedRoom.beds || []).map((b) =>
+        String(b.bedNumber || b.id || "").trim().toLowerCase(),
+      ),
+    );
+    const generated = [];
+    let num = 1;
+    while (generated.length < count) {
+      const candidate = `Bed ${num}`;
+      if (!existing.has(candidate.toLowerCase())) {
+        generated.push(candidate);
+        existing.add(candidate.toLowerCase());
+      }
+      num++;
+    }
+    return generated;
+  }, [selectedRoom, form.count, remainingCapacity]);
+
+  const loadRooms = useCallback(async (preferredRoomId = "") => {
     setLoadingRooms(true);
     setRoomsError("");
 
     try {
       const response = await apiClient.get("/api/management?type=room");
-
       if (response?.error) {
         throw new Error(response.error);
       }
 
-      const result = response?.data;
-
-      if (result?.status !== "success") {
-        throw new Error(result?.message || "Unable to load rooms.");
-      }
-
-      const items = result?.data?.items;
-
-      if (!Array.isArray(items)) {
-        throw new Error("The rooms response has an invalid format.");
-      }
+      let items =
+        response?.data?.data?.items ||
+        response?.data?.items ||
+        (Array.isArray(response?.data) ? response.data : []);
 
       setRooms(items);
 
       setForm((current) => {
-        const existingRoom = items.find((room) => room.id === current.roomId);
-
-        const firstRoomWithCapacity = items.find(
-          (room) => Number(room.bedCount || 0) < Number(room.capacity || 0),
+        const targetId = preferredRoomId || current.roomId;
+        const existingRoom = items.find(
+          (room) =>
+            String(room.id || room._id) === String(targetId) ||
+            String(room.roomId) === String(targetId),
         );
+
+        const firstRoomWithCapacity = items.find((room) => {
+          const cap = Number(room.capacity || 0);
+          const count = Number(
+            room.bedCount ?? (Array.isArray(room.beds) ? room.beds.length : 0),
+          );
+          return count < cap;
+        });
+
+        const activeId = existingRoom
+          ? String(existingRoom.id || existingRoom._id)
+          : firstRoomWithCapacity
+            ? String(firstRoomWithCapacity.id || firstRoomWithCapacity._id)
+            : items[0]
+              ? String(items[0].id || items[0]._id)
+              : "";
 
         return {
           ...current,
-          roomId: existingRoom
-            ? existingRoom.id
-            : firstRoomWithCapacity?.id || items[0]?.id || "",
+          roomId: activeId,
         };
       });
     } catch (error) {
@@ -127,11 +177,20 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
   useEffect(() => {
     if (!isOpen) return;
 
-    setForm(INITIAL_FORM);
+    const initialRoomId =
+      preselectedRoom?.id ||
+      preselectedRoom?._id ||
+      preselectedRoom?.roomId ||
+      "";
+
+    setForm({
+      ...INITIAL_FORM,
+      roomId: initialRoomId,
+    });
     setFormError("");
     setSuccessMessage("");
-    loadRooms();
-  }, [isOpen, loadRooms]);
+    loadRooms(initialRoomId);
+  }, [isOpen, preselectedRoom, loadRooms]);
 
   const handleClose = useCallback(() => {
     if (submitting) return;
@@ -170,18 +229,22 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
       return;
     }
 
-    if (!form.bedNumber.trim()) {
-      setFormError("Please enter a bed number.");
+    if (remainingCapacity <= 0) {
+      setFormError(
+        `Room ${selectedRoom.roomNumber || selectedRoom.id} has reached its bed capacity.`,
+      );
       return;
     }
 
-    if (form.bedNumber.trim().length > 30) {
-      setFormError("Bed number cannot exceed 30 characters.");
+    const count = Math.max(1, Number(form.count) || 1);
+    if (count > remainingCapacity) {
+      setFormError(
+        `Cannot add ${count} beds. Only ${remainingCapacity} remaining spot(s) in Room ${selectedRoom.roomNumber || selectedRoom.id}.`,
+      );
       return;
     }
 
     const monthlyRent = Number(form.monthlyRent);
-
     if (
       form.monthlyRent.trim() === "" ||
       !Number.isFinite(monthlyRent) ||
@@ -191,39 +254,11 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
       return;
     }
 
-    if (remainingCapacity <= 0) {
-      setFormError(
-        `Room ${selectedRoom.roomNumber} has reached its bed capacity.`,
-      );
-      return;
-    }
-
-    // Use the current room's returned bed count to detect obvious
-    // duplicates. The backend must enforce uniqueness as well.
-    const normalizedBedNumber = form.bedNumber
-      .trim()
-      .replace(/\s+/g, " ")
-      .toLowerCase();
-
-    if (
-      Array.isArray(selectedRoom.beds) &&
-      selectedRoom.beds.some((bed) => {
-        const existingNumber = String(bed.bedNumber ?? "")
-          .trim()
-          .replace(/\s+/g, " ")
-          .toLowerCase();
-
-        return existingNumber === normalizedBedNumber;
-      })
-    ) {
-      setFormError("This bed number already exists in the selected room.");
-      return;
-    }
-
     const payload = {
       type: "bed",
-      roomId: form.roomId,
-      bedNumber: form.bedNumber.trim().replace(/\s+/g, " "),
+      roomId: String(selectedRoom.id || selectedRoom._id || form.roomId),
+      count,
+      bedNumber: form.bedNumber?.trim() || undefined,
       bedType: form.bedType,
       monthlyRent,
       status: form.status,
@@ -239,21 +274,28 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
       }
 
       const result = response?.data;
-
-      if (result?.status !== "success") {
-        throw new Error(result?.message || "Unable to create the bed.");
+      if (result?.status !== "success" && !result?.id && !result?.data) {
+        throw new Error(result?.message || "Unable to create the bed(s).");
       }
 
-      setSuccessMessage("Bed created successfully.");
+      setSuccessMessage(`${count} bed(s) created successfully.`);
 
-      // Refresh the parent list/dashboard if a callback was provided.
-      await onBedCreated?.(result.data ?? result);
+      // Sync mock storage if available
+      if (storage?.createBed) {
+        try {
+          storage.createBed(payload);
+        } catch (e) {
+          console.warn("Mock createBed sync:", e);
+        }
+      }
+
+      await onBedCreated?.(result?.data ?? result);
 
       setForm(INITIAL_FORM);
       onClose?.();
     } catch (error) {
       setFormError(
-        error.message || "Unable to create the bed. Please try again.",
+        error.message || "Unable to create the bed(s). Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -265,7 +307,7 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
       isOpen={isOpen}
       onClose={handleClose}
       title="Add New Bed"
-      subtitle="Configure a bed and assign it to an existing room."
+      subtitle="Select a room and specify how many beds to add. Bed IDs are generated automatically."
       maxWidth="max-w-2xl"
       fullScreenMobile
     >
@@ -277,10 +319,10 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
           </div>
 
           <div className="min-w-0">
-            <h3 className="font-bold text-emerald-950">Bed configuration</h3>
+            <h3 className="font-bold text-emerald-950">Bed Configuration</h3>
             <p className="mt-1 text-xs leading-5 text-emerald-800">
-              Choose a room, enter the bed details, and set its initial
-              availability.
+              Just choose a room and enter the bed count. Bed numbers/IDs are
+              automatically generated without requiring unique manual numbers.
             </p>
           </div>
         </div>
@@ -308,7 +350,10 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
 
               {rooms.map((room) => {
                 const capacity = Number(room.capacity || 0);
-                const bedCount = Number(room.bedCount || 0);
+                const bedCount = Number(
+                  room.bedCount ??
+                    (Array.isArray(room.beds) ? room.beds.length : 0),
+                );
                 const full = bedCount >= capacity;
                 const flatLabel = room.flatNumber
                   ? ` (Flat ${room.flatNumber})`
@@ -317,8 +362,12 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
                     : "";
 
                 return (
-                  <option key={room.id} value={room.id}>
-                    Room {room.roomNumber}{flatLabel} · {bedCount}/{capacity} beds
+                  <option
+                    key={room.id || room._id}
+                    value={room.id || room._id}
+                  >
+                    Room {room.roomNumber || room.id}
+                    {flatLabel} · {bedCount}/{capacity} beds
                     {full ? " · Full" : ""}
                   </option>
                 );
@@ -336,7 +385,7 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
 
               <button
                 type="button"
-                onClick={loadRooms}
+                onClick={() => loadRooms()}
                 className="shrink-0 font-semibold underline"
               >
                 Retry
@@ -356,15 +405,20 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
                 <p className="text-[11px] text-slate-500">Existing beds</p>
                 <p className="mt-1 text-base font-bold text-slate-900">
-                  {selectedRoom.bedCount ?? 0}
+                  {selectedRoom.bedCount ??
+                    (Array.isArray(selectedRoom.beds)
+                      ? selectedRoom.beds.length
+                      : 0)}
                 </p>
               </div>
 
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                <p className="text-[11px] text-slate-500">Remaining</p>
+                <p className="text-[11px] text-slate-500">Remaining spots</p>
                 <p
                   className={`mt-1 text-base font-bold ${
-                    remainingCapacity > 0 ? "text-emerald-700" : "text-rose-600"
+                    remainingCapacity > 0
+                      ? "text-emerald-700"
+                      : "text-rose-600"
                   }`}
                 >
                   {remainingCapacity}
@@ -374,31 +428,93 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
           )}
         </div>
 
-        {/* Bed Number */}
+        {/* Number of Beds to Add */}
         <div>
-          <FieldLabel required>Bed Number</FieldLabel>
+          <FieldLabel required>Number of Beds to Add</FieldLabel>
 
-          <div className="relative">
-            <FieldIcon>
-              <Hash size={18} />
-            </FieldIcon>
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <FieldIcon>
+                <Hash size={18} />
+              </FieldIcon>
 
-            <input
-              name="bedNumber"
-              value={form.bedNumber}
-              onChange={handleChange}
-              placeholder="e.g. Bed 1"
-              maxLength={30}
-              disabled={submitting}
-              className={inputClass}
-              autoComplete="off"
-              required
-            />
+              <input
+                type="number"
+                name="count"
+                min={1}
+                max={Math.max(1, remainingCapacity)}
+                value={form.count}
+                onChange={(e) => {
+                  const val = Math.max(
+                    1,
+                    Math.min(
+                      Number(e.target.value) || 1,
+                      Math.max(1, remainingCapacity),
+                    ),
+                  );
+                  setForm((c) => ({ ...c, count: val }));
+                  setFormError("");
+                }}
+                disabled={submitting || remainingCapacity <= 0}
+                className={inputClass}
+                required
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={
+                  submitting || form.count <= 1 || remainingCapacity <= 0
+                }
+                onClick={() =>
+                  setForm((c) => ({
+                    ...c,
+                    count: Math.max(1, (Number(c.count) || 1) - 1),
+                  }))
+                }
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-lg font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              >
+                -
+              </button>
+              <button
+                type="button"
+                disabled={
+                  submitting ||
+                  form.count >= remainingCapacity ||
+                  remainingCapacity <= 0
+                }
+                onClick={() =>
+                  setForm((c) => ({
+                    ...c,
+                    count: Math.min(
+                      remainingCapacity,
+                      (Number(c.count) || 1) + 1,
+                    ),
+                  }))
+                }
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-lg font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              >
+                +
+              </button>
+            </div>
           </div>
 
-          <p className="mt-1.5 text-xs text-slate-400">
-            Enter a unique bed number within the selected room.
-          </p>
+          {selectedRoom && remainingCapacity > 0 && (
+            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+              <span className="text-xs font-medium text-slate-500">
+                Auto-generated Bed IDs:
+              </span>
+              {previewBedNumbers.map((bName) => (
+                <span
+                  key={bName}
+                  className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800"
+                >
+                  {bName}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Bed Type */}
@@ -440,7 +556,7 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
 
         {/* Rent */}
         <div>
-          <FieldLabel required>Monthly Rent</FieldLabel>
+          <FieldLabel required>Monthly Rent (per bed)</FieldLabel>
 
           <div className="relative">
             <FieldIcon>
@@ -452,28 +568,23 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
               name="monthlyRent"
               value={form.monthlyRent}
               onChange={handleChange}
-              min="1"
-              step="1"
-              placeholder="6000"
+              placeholder="e.g. 6000"
+              min={1}
               disabled={submitting}
               className={inputClass}
               required
             />
           </div>
-
-          <p className="mt-1.5 text-xs text-slate-400">
-            Rent per month for this bed.
-          </p>
         </div>
 
         {/* Status */}
         <div>
-          <FieldLabel required>Initial Status</FieldLabel>
+          <FieldLabel required>Initial Bed Status</FieldLabel>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {BED_STATUSES.map((status) => {
               const active = form.status === status.value;
-              const isAvailable = status.value === "Available";
+              const isMaintenance = status.value === "Maintenance";
 
               return (
                 <button
@@ -487,36 +598,36 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
                     }));
                     setFormError("");
                   }}
-                  className={`flex items-center gap-3 rounded-xl border p-3.5 text-left transition ${
+                  className={`flex items-center justify-between rounded-xl border p-4 text-left transition ${
                     active
-                      ? isAvailable
-                        ? "border-emerald-300 bg-emerald-50 ring-1 ring-emerald-200"
-                        : "border-amber-300 bg-amber-50 ring-1 ring-amber-200"
-                      : "border-slate-200 bg-white hover:border-slate-300"
+                      ? "border-emerald-700 bg-emerald-50/60 ring-2 ring-emerald-100"
+                      : "border-slate-200 bg-white hover:border-emerald-300 hover:bg-slate-50/60"
                   }`}
                 >
-                  <span
-                    className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                      isAvailable
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-amber-100 text-amber-700"
-                    }`}
-                  >
-                    {isAvailable ? (
-                      <CheckCircle2 size={19} />
-                    ) : (
-                      <Wrench size={19} />
-                    )}
-                  </span>
-
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-slate-800">
-                      {status.label}
+                  <span className="flex items-center gap-3">
+                    <span
+                      className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                        isMaintenance
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-emerald-100 text-emerald-800"
+                      }`}
+                    >
+                      {isMaintenance ? (
+                        <Wrench size={17} />
+                      ) : (
+                        <BedDouble size={17} />
+                      )}
                     </span>
-                    <span className="mt-0.5 block text-[11px] text-slate-500">
-                      {isAvailable
-                        ? "Ready for allocation"
-                        : "Temporarily unavailable"}
+
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-900">
+                        {status.label}
+                      </span>
+                      <span className="block text-xs text-slate-500">
+                        {isMaintenance
+                          ? "Bed will be marked for repair"
+                          : "Ready for immediate occupancy"}
+                      </span>
                     </span>
                   </span>
 
@@ -558,8 +669,8 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
           <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-800">
             <AlertCircle size={18} className="mt-0.5 shrink-0" />
             <span>
-              Room {selectedRoom.roomNumber} has reached its capacity. Select
-              another room to continue.
+              Room {selectedRoom.roomNumber || selectedRoom.id} has reached its
+              capacity. Select another room to continue.
             </span>
           </div>
         )}
@@ -585,12 +696,12 @@ export default function AddBedModal({ isOpen, onClose, onBedCreated }) {
             {submitting ? (
               <>
                 <LoaderCircle size={17} className="animate-spin" />
-                Creating bed...
+                Creating {form.count > 1 ? `${form.count} beds...` : "bed..."}
               </>
             ) : (
               <>
                 <BedDouble size={17} />
-                Create Bed
+                Create {form.count > 1 ? `${form.count} Beds` : "Bed"}
               </>
             )}
           </button>

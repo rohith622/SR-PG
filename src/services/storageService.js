@@ -280,6 +280,45 @@ export const storage = {
     return newRoom;
   },
 
+  updateRoom: (roomId, roomData) => {
+    initStorage();
+    const rooms = getFromStorage(STORAGE_KEYS.ROOMS, []);
+    const index = rooms.findIndex((r) => r.id === roomId || r._id === roomId);
+    if (index === -1) {
+      throw new Error('Room not found.');
+    }
+    const updated = {
+      ...rooms[index],
+      ...roomData,
+      updatedAt: new Date().toISOString(),
+    };
+    rooms[index] = updated;
+    saveToStorage(STORAGE_KEYS.ROOMS, rooms);
+    return updated;
+  },
+
+  deleteRoom: (roomId) => {
+    initStorage();
+    const tenants = getFromStorage(STORAGE_KEYS.TENANTS, []);
+    const hasActiveTenant = tenants.some(
+      (t) =>
+        (t.roomId === roomId || t.room?.id === roomId || t.room?._id === roomId) &&
+        t.tenantStatus !== 'CheckedOut'
+    );
+    if (hasActiveTenant) {
+      throw new Error('Cannot delete this room because it contains active tenants.');
+    }
+    const rooms = getFromStorage(STORAGE_KEYS.ROOMS, []);
+    const updatedRooms = rooms.filter((r) => r.id !== roomId && r._id !== roomId);
+    saveToStorage(STORAGE_KEYS.ROOMS, updatedRooms);
+
+    // Also delete associated beds
+    const beds = getFromStorage(STORAGE_KEYS.BEDS, []);
+    const updatedBeds = beds.filter((b) => b.roomId !== roomId);
+    saveToStorage(STORAGE_KEYS.BEDS, updatedBeds);
+    return { success: true };
+  },
+
   // Beds
   getBedsByRoom: (roomId) => {
     initStorage();
@@ -302,49 +341,75 @@ export const storage = {
     }
 
     const roomBeds = beds.filter((b) => b.roomId === bedData.roomId);
+    const count = Math.max(1, Number(bedData.count) || 1);
 
     // Capacity enforcement
-    if (roomBeds.length >= room.capacity) {
+    if (roomBeds.length + count > room.capacity) {
       throw new Error(
-        `Room ${room.roomNumber} has reached its configured capacity limit of ${room.capacity} beds.`
+        `Room ${room.roomNumber} has reached its configured capacity limit of ${room.capacity} beds. Cannot add ${count} more.`
       );
     }
 
-    // Duplicate bed number enforcement (case & whitespace insensitive)
-    const normalizedNewBed = normalizeString(bedData.bedNumber);
-    const isDuplicate = roomBeds.some(
-      (b) => normalizeString(b.bedNumber) === normalizedNewBed
+    const existingNumbers = new Set(
+      roomBeds.map((b) => normalizeString(b.bedNumber))
     );
 
-    if (isDuplicate) {
-      throw new Error(
-        `Bed "${bedData.bedNumber}" already exists in Room ${room.roomNumber}.`
-      );
+    const bedsToCreate = [];
+    if (count > 1 || !bedData.bedNumber || !String(bedData.bedNumber).trim()) {
+      let num = 1;
+      while (bedsToCreate.length < count) {
+        const candidateNumber = `Bed ${num}`;
+        if (!existingNumbers.has(normalizeString(candidateNumber))) {
+          bedsToCreate.push({
+            id: `bed-${Date.now()}-${bedsToCreate.length}`,
+            roomId: room.id,
+            roomNumber: room.roomNumber,
+            bedNumber: candidateNumber,
+            bedType: bedData.bedType || 'Single Bed',
+            monthlyRent: Number(bedData.monthlyRent) || room.monthlyRent,
+            status: bedData.status === 'Maintenance' ? 'Maintenance' : 'Available',
+            tenantId: null,
+            tenantName: null,
+            tenantPhone: null,
+            createdAt: new Date().toISOString(),
+          });
+          existingNumbers.add(normalizeString(candidateNumber));
+        }
+        num++;
+      }
+    } else {
+      const normalizedNewBed = normalizeString(bedData.bedNumber);
+      if (existingNumbers.has(normalizedNewBed)) {
+        throw new Error(
+          `Bed "${bedData.bedNumber}" already exists in Room ${room.roomNumber}.`
+        );
+      }
+      bedsToCreate.push({
+        id: `bed-${Date.now()}`,
+        roomId: room.id,
+        roomNumber: room.roomNumber,
+        bedNumber: bedData.bedNumber.trim(),
+        bedType: bedData.bedType || 'Single Bed',
+        monthlyRent: Number(bedData.monthlyRent) || room.monthlyRent,
+        status: bedData.status === 'Maintenance' ? 'Maintenance' : 'Available',
+        tenantId: null,
+        tenantName: null,
+        tenantPhone: null,
+        createdAt: new Date().toISOString(),
+      });
     }
 
-    const newBed = {
-      id: `bed-${Date.now()}`,
-      roomId: room.id,
-      roomNumber: room.roomNumber,
-      bedNumber: bedData.bedNumber.trim(),
-      bedType: bedData.bedType || 'Single Bed',
-      monthlyRent: Number(bedData.monthlyRent) || room.monthlyRent,
-      status: bedData.status === 'Maintenance' ? 'Maintenance' : 'Available',
-      tenantId: null,
-      tenantName: null,
-      tenantPhone: null,
-      createdAt: new Date().toISOString(),
-    };
+    saveToStorage(STORAGE_KEYS.BEDS, [...beds, ...bedsToCreate]);
 
-    saveToStorage(STORAGE_KEYS.BEDS, [...beds, newBed]);
+    bedsToCreate.forEach((b) => {
+      logActivity(
+        'bed_added',
+        'Bed Added',
+        `${b.bedNumber} was added to Room ${room.roomNumber} (${b.bedType}).`
+      );
+    });
 
-    logActivity(
-      'bed_added',
-      'Bed Added',
-      `${newBed.bedNumber} was added to Room ${room.roomNumber} (${newBed.bedType}).`
-    );
-
-    return newBed;
+    return bedsToCreate.length === 1 ? bedsToCreate[0] : bedsToCreate;
   },
 
   updateBedStatus: (bedId, newStatus) => {
@@ -368,6 +433,56 @@ export const storage = {
     );
 
     return bed;
+  },
+
+  updateBed: (bedId, bedData) => {
+    initStorage();
+    const beds = getFromStorage(STORAGE_KEYS.BEDS, []);
+    const bedIndex = beds.findIndex((b) => b.id === bedId || b._id === bedId);
+    if (bedIndex === -1) throw new Error('Bed not found.');
+
+    const updated = {
+      ...beds[bedIndex],
+      ...bedData,
+      updatedAt: new Date().toISOString(),
+    };
+    beds[bedIndex] = updated;
+    saveToStorage(STORAGE_KEYS.BEDS, beds);
+    return updated;
+  },
+
+  deleteBed: (bedId) => {
+    initStorage();
+    const beds = getFromStorage(STORAGE_KEYS.BEDS, []);
+    const bed = beds.find((b) => b.id === bedId || b._id === bedId);
+    if (bed && (bed.status?.toLowerCase() === 'occupied' || bed.tenantId)) {
+      throw new Error('Cannot delete this bed because it is occupied by an active tenant.');
+    }
+    const updatedBeds = beds.filter((b) => b.id !== bedId && b._id !== bedId);
+    saveToStorage(STORAGE_KEYS.BEDS, updatedBeds);
+    return { success: true };
+  },
+
+  deleteTenant: (tenantId) => {
+    initStorage();
+    const tenants = getFromStorage(STORAGE_KEYS.TENANTS, []);
+    const tenant = tenants.find((t) => t.id === tenantId || t._id === tenantId);
+    if (!tenant) return { success: true };
+
+    // Release bed
+    const beds = getFromStorage(STORAGE_KEYS.BEDS, []);
+    const bedIndex = beds.findIndex((b) => b.id === tenant.bedId || b._id === tenant.bedId);
+    if (bedIndex !== -1) {
+      beds[bedIndex].status = 'Available';
+      beds[bedIndex].tenantId = null;
+      beds[bedIndex].tenantName = null;
+      beds[bedIndex].tenantPhone = null;
+      saveToStorage(STORAGE_KEYS.BEDS, beds);
+    }
+
+    const updatedTenants = tenants.filter((t) => t.id !== tenantId && t._id !== tenantId);
+    saveToStorage(STORAGE_KEYS.TENANTS, updatedTenants);
+    return { success: true };
   },
 
   // Tenants & Allocation
@@ -662,3 +777,5 @@ export const storage = {
     return getFromStorage(STORAGE_KEYS.ACTIVITIES, []);
   },
 };
+
+export default storage;
